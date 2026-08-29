@@ -11,4 +11,6 @@ public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
 
     // Этот метод Spring сгенерирует сам: SELECT * FROM ingredients WHERE name = ?
     Optional<Ingredient> findByName(String name);
+
+    Optional<Ingredient> findByNameIgnoreCase(String name);
 }
