@@ -1,10 +1,9 @@
 
-package com.e.mealtracker.domain;
+package com.e.mealtracker.domain; // или entity — главное, чтобы совпадало с остальными
 
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,7 +11,6 @@ import java.util.List;
 @Table(name = "recipes")
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class Recipe {
 
     @Id
@@ -23,9 +21,9 @@ public class Recipe {
     private String name;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private MealType category;
 
-    // Связь «один ко многим»: у одного рецепта много строк в recipe_ingredients
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "recipe")
     private List<RecipeIngredient> ingredients = new ArrayList<>();
 
