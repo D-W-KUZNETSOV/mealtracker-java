@@ -109,7 +109,7 @@ public class RecipeService {
             double calories = ri.getWeightInGrams() * ri.getIngredient().getCaloriesPer100g() / 100.0;
             totalCalories += calories;
         }
-        dto.setTotalCalories(totalCalories);
+        dto.setTotalCalories(Math.round(totalCalories));
 
         List<RecipeIngredientDto> ingredientDtos = recipe.getIngredients().stream()
                 .map(ri -> new RecipeIngredientDto(
