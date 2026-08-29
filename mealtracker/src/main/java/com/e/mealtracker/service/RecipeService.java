@@ -48,14 +48,28 @@ public class RecipeService {
             recipeIngredientRepository.save(ri);
         }
 
-        // Самое удобное: сразу верни полный DTO через toDto — там и калории, и список ингредиентов
         return toDto(recipe);
     }
-    public List<RecipeDto> getAllRecipes() {
-        return recipeRepository.findAll().stream()
+
+    public List<RecipeDto> getAllRecipes(String category) {
+        List<Recipe> recipes;
+
+        if (category == null) {
+            recipes = recipeRepository.findAll();
+        } else {
+            try {
+                MealType mealType = MealType.valueOf(category.toUpperCase());
+                recipes = recipeRepository.findByCategory(mealType);
+            } catch (IllegalArgumentException e) {
+                return List.of(); // пустой список, если категория неверная
+            }
+        }
+
+        return recipes.stream()
                 .map(this::toDto)
                 .toList();
     }
+
     private RecipeDto toDto(Recipe recipe) {
         RecipeDto dto = new RecipeDto();
         dto.setName(recipe.getName());
@@ -78,9 +92,6 @@ public class RecipeService {
         dto.setIngredients(ingredientDtos);
         return dto;
     }
-
-
-
-
 }
+
 

@@ -23,7 +23,8 @@ public class RecipeController {
     }
 
     @GetMapping
-    public List<RecipeDto> getAllRecipes() {
-        return recipeService.getAllRecipes();
+    public List<RecipeDto> getAllRecipes(@RequestParam(required = false) String category) {
+        return recipeService.getAllRecipes(category);
     }
 }
+
