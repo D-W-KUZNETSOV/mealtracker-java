@@ -4,8 +4,10 @@ import com.e.mealtracker.domain.Ingredient;
 import com.e.mealtracker.domain.MealType;
 import com.e.mealtracker.domain.Recipe;
 import com.e.mealtracker.domain.RecipeIngredient;
+import com.e.mealtracker.dto.CreateRecipeRequest;
 import com.e.mealtracker.dto.IngredientWeightDto;
 import com.e.mealtracker.dto.RecipeDto;
+import com.e.mealtracker.dto.RecipeIngredientDto;
 import com.e.mealtracker.repository.IngredientRepository;
 import com.e.mealtracker.repository.RecipeIngredientRepository;
 import com.e.mealtracker.repository.RecipeRepository;
@@ -23,38 +25,61 @@ public class RecipeService {
     private final IngredientRepository ingredientRepository;
     private final RecipeIngredientRepository recipeIngredientRepository;
 
-    public RecipeDto saveRecipe(RecipeDto dto) {
+    public RecipeDto saveRecipe(CreateRecipeRequest request) {
         Recipe recipe = new Recipe();
-        recipe.setName(dto.getName());
+        recipe.setName(request.getName());
 
-        // ✅ Самое важное исправление: конвертируем строку в enum
-        String categoryString = dto.getCategory() != null ? dto.getCategory().toUpperCase() : "";
+        String categoryString = request.getCategory() != null ? request.getCategory().toUpperCase() : "";
         recipe.setCategory(MealType.valueOf(categoryString));
 
         recipe = recipeRepository.save(recipe);
 
-        double totalCalories = 0.0;
-
-        for (IngredientWeightDto input : dto.getIngredients()) {
+        for (IngredientWeightDto input : request.getIngredients()) {
             Optional<Ingredient> optionalIngredient = ingredientRepository.findByName(input.getIngredientName());
             if (optionalIngredient.isEmpty()) {
                 throw new IllegalArgumentException("Не найден ингредиент: " + input.getIngredientName());
             }
             Ingredient ingredient = optionalIngredient.get();
 
-            double calories = input.getWeightInGrams() * ingredient.getCaloriesPer100g() / 100.0;
-            totalCalories += calories;
-
-            RecipeIngredient recipeIngredient = new RecipeIngredient();
-            recipeIngredient.setWeightInGrams(input.getWeightInGrams());
-            recipeIngredient.setIngredient(ingredient);
-            recipeIngredient.setRecipe(recipe);
-            recipeIngredientRepository.save(recipeIngredient);
+            RecipeIngredient ri = new RecipeIngredient();
+            ri.setWeightInGrams(input.getWeightInGrams());
+            ri.setIngredient(ingredient);
+            ri.setRecipe(recipe);
+            recipeIngredientRepository.save(ri);
         }
 
+        // Самое удобное: сразу верни полный DTO через toDto — там и калории, и список ингредиентов
+        return toDto(recipe);
+    }
+    public List<RecipeDto> getAllRecipes() {
+        return recipeRepository.findAll().stream()
+                .map(this::toDto)
+                .toList();
+    }
+    private RecipeDto toDto(Recipe recipe) {
+        RecipeDto dto = new RecipeDto();
+        dto.setName(recipe.getName());
+        dto.setCategory(recipe.getCategory().name());
+
+        double totalCalories = 0.0;
+        for (RecipeIngredient ri : recipe.getIngredients()) {
+            double calories = ri.getWeightInGrams() * ri.getIngredient().getCaloriesPer100g() / 100.0;
+            totalCalories += calories;
+        }
         dto.setTotalCalories(totalCalories);
+
+        List<RecipeIngredientDto> ingredientDtos = recipe.getIngredients().stream()
+                .map(ri -> new RecipeIngredientDto(
+                        ri.getIngredient().getName(),
+                        ri.getWeightInGrams()
+                ))
+                .toList();
+
+        dto.setIngredients(ingredientDtos);
         return dto;
     }
+
+
 
 
 }
