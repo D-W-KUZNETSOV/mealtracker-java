@@ -4,12 +4,8 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class RecipeDto {
+public class CreateRecipeRequest {
     private String name;
     private String category;
-    private List<RecipeIngredientDto> ingredients;
-    private double totalCalories;
+    private List<IngredientWeightDto> ingredients;
 }
-
-
-
