@@ -17,6 +17,13 @@ public class CreateIngredientRequest {
     private String name;
 
     @Min(value = 0, message = "Калории не могут быть отрицательными")
-    private double caloriesPer100g;
+    private Double caloriesPer100g;
+
+    @Min(value = 0, message = "Калории не могут быть отрицательными")
+    private Double proteinsPer100g;
+    @Min(value = 0, message = "Калории не могут быть отрицательными")
+    private Double fatsPer100g;
+    @Min(value = 0, message = "Калории не могут быть отрицательными")
+    private Double carbsPer100g;
 }
 

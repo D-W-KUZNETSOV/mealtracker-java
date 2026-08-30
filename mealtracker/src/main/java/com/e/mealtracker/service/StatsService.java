@@ -9,7 +9,6 @@ import com.e.mealtracker.repository.RecipeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,8 +20,8 @@ public class StatsService {
     private final RecipeRepository recipeRepository;
 
     /**
-     * Считает суммарные КБЖУ по списку пар (recipeId, weightInGrams).
-     * Вес — это сколько граммов этого рецепта ты реально съел.
+     * Считает суммарные КБЖУ по списку порций.
+     * Вес в RecipePortionRequest — это сколько граммов блюда реально съедено.
      */
     public DailyStatsDto calculateStats(List<RecipePortionRequest> portions) {
         double totalCalories = 0;
@@ -30,8 +29,14 @@ public class StatsService {
         double totalFats = 0;
         double totalCarbs = 0;
 
-        // загружаем все рецепты одним запросом
-        List<Long> ids = portions.stream().map(RecipePortionRequest::getRecipeId).toList();
+        if (portions == null || portions.isEmpty()) {
+            return new DailyStatsDto(0, 0, 0, 0);
+        }
+
+        List<Long> ids = portions.stream()
+                .map(RecipePortionRequest::getRecipeId)
+                .toList();
+
         Map<Long, Recipe> recipeMap = recipeRepository.findAllById(ids).stream()
                 .collect(Collectors.toMap(Recipe::getId, r -> r));
 
@@ -41,32 +46,47 @@ public class StatsService {
                 throw new IllegalArgumentException("Рецепт с ID " + p.getRecipeId() + " не найден");
             }
 
-            // коэффициент пересчёта: сколько «сотен грамм» в твоей порции
-            double factor = p.getWeightInGrams() / 100.0;
+            double portionWeight = p.getWeightInGrams();
+            if (portionWeight <= 0) {
+                throw new IllegalArgumentException("Вес порции должен быть больше 0");
+            }
 
-            // считаем КБЖУ рецепта на 100 г
-            double recipeCaloriesPer100 = 0;
-            double recipeProteinsPer100 = 0;
-            double recipeFatsPer100 = 0;
-            double recipeCarbsPer100 = 0;
+            // Считаем общий вес всех ингредиентов в полном рецепте
+            double totalRecipeWeight = recipe.getIngredients().stream()
+                    .mapToDouble(ri -> ri.getWeightInGrams())
+                    .sum();
+
+            if (totalRecipeWeight == 0) {
+                throw new IllegalArgumentException(
+                        "Общий вес ингредиентов рецепта равен 0. Проверьте веса в рецепте."
+                );
+            }
 
             for (RecipeIngredient ri : recipe.getIngredients()) {
                 Ingredient ing = ri.getIngredient();
-                double ingredientFactor = ri.getWeightInGrams() / 100.0; // вес ингредиента в рецепте
 
-                recipeCaloriesPer100 += ing.getCaloriesPer100g() * ingredientFactor;
-                recipeProteinsPer100 += ing.getProteinsPer100g() * ingredientFactor;
-                recipeFatsPer100 += ing.getFatsPer100g() * ingredientFactor;
-                recipeCarbsPer100 += ing.getCarbsPer100g() * ingredientFactor;
+                if (ing.getCaloriesPer100g() == null
+                        || ing.getProteinsPer100g() == null
+                        || ing.getFatsPer100g() == null
+                        || ing.getCarbsPer100g() == null) {
+                    throw new IllegalArgumentException(
+                            "У ингредиента '" + ing.getName() + "' неполные данные КБЖУ."
+                    );
+                }
+
+                // Пропорция: сколько граммов этого ингредиента в твоей порции
+                double weightInPortion = (ri.getWeightInGrams() / totalRecipeWeight) * portionWeight;
+
+                // КБЖУ на 100 г × (вес в порции / 100)
+                totalCalories += ing.getCaloriesPer100g() * (weightInPortion / 100.0);
+                totalProteins  += ing.getProteinsPer100g()  * (weightInPortion / 100.0);
+                totalFats       += ing.getFatsPer100g()      * (weightInPortion / 100.0);
+                totalCarbs       += ing.getCarbsPer100g()    * (weightInPortion / 100.0);
             }
-
-            // теперь умножаем на твою порцию
-            totalCalories += recipeCaloriesPer100 * factor;
-            totalProteins += recipeProteinsPer100 * factor;
-            totalFats += recipeFatsPer100 * factor;
-            totalCarbs += recipeCarbsPer100 * factor;
         }
 
         return new DailyStatsDto(totalCalories, totalProteins, totalFats, totalCarbs);
     }
+
+
 }

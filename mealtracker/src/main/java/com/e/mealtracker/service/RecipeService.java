@@ -1,5 +1,6 @@
 package com.e.mealtracker.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.e.mealtracker.domain.Ingredient;
 import com.e.mealtracker.domain.MealType;
 import com.e.mealtracker.domain.Recipe;
@@ -15,10 +16,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecipeService {
@@ -32,42 +32,79 @@ public class RecipeService {
         Recipe recipe = new Recipe();
         recipe.setName(request.getName());
 
+        // Обработка категории
         if (request.getCategory() != null && !request.getCategory().isBlank()) {
             String categoryString = request.getCategory().trim().toUpperCase();
             try {
                 recipe.setCategory(MealType.valueOf(categoryString));
             } catch (IllegalArgumentException e) {
+                log.warn("Некорректная категория '{}', устанавливаем null", categoryString);
                 recipe.setCategory(null);
             }
         } else {
             recipe.setCategory(null);
         }
 
-        // Сохраняем рецепт, чтобы получить ID
+        List<String> missingIngredients = new ArrayList<>();
+        List<String> missingNutritionalData = new ArrayList<>(); // <-- добавили этот список
+        Map<String, Ingredient> ingredientMap = new HashMap<>();
+
+        for (IngredientWeightDto input : request.getIngredients()) {
+            String name = input.getIngredientName();
+            Optional<Ingredient> optional = ingredientRepository.findByNameIgnoreCase(name);
+
+            if (optional.isEmpty()) {
+                missingIngredients.add(name);
+            } else {
+                Ingredient ingredient = optional.get();
+                ingredientMap.put(name, ingredient);
+
+                // --- ВОТ СЮДА ВСТАВЛЯЕМ ПРОВЕРКУ ---
+                if (ingredient.getCaloriesPer100g() == null
+                        || ingredient.getProteinsPer100g() == null
+                        || ingredient.getFatsPer100g() == null
+                        || ingredient.getCarbsPer100g() == null) {
+                    missingNutritionalData.add(ingredient.getName());
+                }
+                // ----------------------------------
+            }
+        }
+
+        // Сначала проверяем отсутствие ингредиентов
+        if (!missingIngredients.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Следующие ингредиенты не найдены в базе. Сначала добавьте их: " +
+                            String.join(", ", missingIngredients)
+            );
+        }
+
+        // Потом проверяем неполные данные КБЖУ
+        if (!missingNutritionalData.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "У следующих ингредиентов не заполнены данные КБЖУ. Сначала обновите их: " +
+                            String.join(", ", missingNutritionalData)
+            );
+        }
+
+        // Теперь можно безопасно сохранять рецепт
         recipe = recipeRepository.save(recipe);
 
         for (IngredientWeightDto input : request.getIngredients()) {
-            Optional<Ingredient> optionalIngredient = ingredientRepository.findByNameIgnoreCase(input.getIngredientName());
-            if (optionalIngredient.isEmpty()) {
-                throw new IllegalArgumentException("Не найден ингредиент: " + input.getIngredientName());
-            }
-            Ingredient ingredient = optionalIngredient.get();
+            Ingredient ingredient = ingredientMap.get(input.getIngredientName());
 
             RecipeIngredient ri = new RecipeIngredient();
             ri.setWeightInGrams(input.getWeightInGrams());
             ri.setIngredient(ingredient);
             ri.setRecipe(recipe);
 
-            // Сохраняем связь
             recipeIngredientRepository.save(ri);
-
-            // Коллекция уже инициализирована в сущности Recipe
             recipe.getIngredients().add(ri);
         }
 
-        // totalCalories не храним в Recipe, считаем в DTO
         return toDto(recipe);
     }
+
+
 
     public List<RecipeDto> getAllRecipes(String category) {
         List<Recipe> recipes;
@@ -78,6 +115,7 @@ public class RecipeService {
                 MealType mealType = MealType.valueOf(category.toUpperCase());
                 recipes = recipeRepository.findByCategory(mealType);
             } catch (IllegalArgumentException e) {
+                log.debug("Некорректная категория для поиска: {}", category);
                 return List.of();
             }
         }
@@ -107,6 +145,7 @@ public class RecipeService {
         dto.setIngredients(ingredientDtos);
         return dto;
     }
+
     @Transactional
     public void deleteRecipe(Long id) {
         if (!recipeRepository.existsById(id)) {
@@ -115,4 +154,5 @@ public class RecipeService {
         recipeRepository.deleteById(id);
     }
 }
+
 

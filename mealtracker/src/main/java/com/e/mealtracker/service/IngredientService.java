@@ -15,14 +15,20 @@ public class IngredientService {
     public Ingredient saveIngredient(CreateIngredientRequest request) {
         return ingredientRepository.findByNameIgnoreCase(request.getName())
                 .map(existing -> {
-                    // Если хочешь, чтобы при повторной отправке калории обновлялись:
+                    // Обновляем все поля, если ингредиент уже есть
                     existing.setCaloriesPer100g(request.getCaloriesPer100g());
+                    existing.setProteinsPer100g(request.getProteinsPer100g());
+                    existing.setFatsPer100g(request.getFatsPer100g());
+                    existing.setCarbsPer100g(request.getCarbsPer100g());
                     return ingredientRepository.save(existing);
                 })
                 .orElseGet(() -> {
                     Ingredient newIngredient = new Ingredient();
                     newIngredient.setName(request.getName());
                     newIngredient.setCaloriesPer100g(request.getCaloriesPer100g());
+                    newIngredient.setProteinsPer100g(request.getProteinsPer100g());
+                    newIngredient.setFatsPer100g(request.getFatsPer100g());
+                    newIngredient.setCarbsPer100g(request.getCarbsPer100g());
                     return ingredientRepository.save(newIngredient);
                 });
     }
