@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,18 +43,11 @@ public class RecipeService {
             recipe.setCategory(null);
         }
 
-        // Сначала сохраняем рецепт, чтобы у него появился ID
+        // Сохраняем рецепт, чтобы получить ID
         recipe = recipeRepository.save(recipe);
 
-        // Инициализируем коллекцию, если она null (на всякий случай)
-        if (recipe.getIngredients() == null) {
-            recipe.setIngredients(new java.util.ArrayList<>());
-        }
-
-        double totalCalories = 0.0;
-
         for (IngredientWeightDto input : request.getIngredients()) {
-            Optional<Ingredient> optionalIngredient = ingredientRepository.findByNameIgnoreCase(input.getIngredientName()); // лучше ignoreCase
+            Optional<Ingredient> optionalIngredient = ingredientRepository.findByNameIgnoreCase(input.getIngredientName());
             if (optionalIngredient.isEmpty()) {
                 throw new IllegalArgumentException("Не найден ингредиент: " + input.getIngredientName());
             }
@@ -65,24 +59,18 @@ public class RecipeService {
             ri.setRecipe(recipe);
 
             // Сохраняем связь
-            ri = recipeIngredientRepository.save(ri);
+            recipeIngredientRepository.save(ri);
 
-            // Добавляем в коллекцию рецепта (чтобы toDto сразу видел)
+            // Коллекция уже инициализирована в сущности Recipe
             recipe.getIngredients().add(ri);
-
-            // Считаем калории прямо тут
-            double calories = ri.getWeightInGrams() * ingredient.getCaloriesPer100g() / 100.0;
-            totalCalories += calories;
         }
 
-
-        recipe = recipeRepository.save(recipe); // обновляем рецепт с totalCalories
-
+        // totalCalories не храним в Recipe, считаем в DTO
         return toDto(recipe);
     }
+
     public List<RecipeDto> getAllRecipes(String category) {
         List<Recipe> recipes;
-
         if (category == null) {
             recipes = recipeRepository.findAll();
         } else {
@@ -90,13 +78,10 @@ public class RecipeService {
                 MealType mealType = MealType.valueOf(category.toUpperCase());
                 recipes = recipeRepository.findByCategory(mealType);
             } catch (IllegalArgumentException e) {
-                return List.of(); // пустой список, если категория неверная
+                return List.of();
             }
         }
-
-        return recipes.stream()
-                .map(this::toDto)
-                .toList();
+        return recipes.stream().map(this::toDto).toList();
     }
 
     private RecipeDto toDto(Recipe recipe) {
@@ -105,22 +90,21 @@ public class RecipeService {
         dto.setCategory(recipe.getCategory() == null ? null : recipe.getCategory().name());
 
         double totalCalories = 0.0;
+        List<RecipeIngredientDto> ingredientDtos = new ArrayList<>();
+
         for (RecipeIngredient ri : recipe.getIngredients()) {
-            double calories = ri.getWeightInGrams() * ri.getIngredient().getCaloriesPer100g() / 100.0;
+            double calsPer100 = ri.getIngredient().calculateCaloriesPer100g();
+            double calories = ri.getWeightInGrams() * calsPer100 / 100.0;
             totalCalories += calories;
+
+            ingredientDtos.add(new RecipeIngredientDto(
+                    ri.getIngredient().getName(),
+                    ri.getWeightInGrams()
+            ));
         }
+
         dto.setTotalCalories(Math.round(totalCalories));
-
-        List<RecipeIngredientDto> ingredientDtos = recipe.getIngredients().stream()
-                .map(ri -> new RecipeIngredientDto(
-                        ri.getIngredient().getName(),
-                        ri.getWeightInGrams()
-                ))
-                .toList();
-
         dto.setIngredients(ingredientDtos);
         return dto;
     }
 }
-
-
