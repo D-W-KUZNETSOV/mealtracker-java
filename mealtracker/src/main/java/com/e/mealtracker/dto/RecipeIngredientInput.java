@@ -1,9 +1,12 @@
 package com.e.mealtracker.dto;
 
 import lombok.Data;
+import jakarta.validation.constraints.Positive;
 
 @Data
 public class RecipeIngredientInput {
-    private String name;           // имя ингредиента (должно совпадать с таблицей ingredients.name)
-    private double quantityGrams;   // сколько грамм этого ингредиента в рецепте
+    private Long ingredientId;
+
+    @Positive(message = "Вес должен быть больше 0")
+    private double quantityGrams;
 }

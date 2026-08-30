@@ -51,8 +51,10 @@ public class DataInitializer implements CommandLineRunner {
                     return recipeRepository.save(r);
                 });
 
-        Ingredient chicken = ingredientRepository.findByName("Куриная грудка").orElseThrow();
-        Ingredient buckwheat = ingredientRepository.findByName("Гречка варёная").orElseThrow();
+        Ingredient chicken = ingredientRepository.findByName("Куриная грудка")
+                .orElseThrow(() -> new IllegalStateException("Ингредиент 'Куриная грудка' не найден"));
+        Ingredient buckwheat = ingredientRepository.findByName("Гречка варёная")
+                .orElseThrow(() -> new IllegalStateException("Ингредиент 'Гречка варёная' не найден"));
 
         ensureRecipeIngredient(lunch, chicken, 200.0); // 200 г курицы
         ensureRecipeIngredient(lunch, buckwheat, 150.0); // 150 г гречки
@@ -104,9 +106,12 @@ public class DataInitializer implements CommandLineRunner {
         return i;
     }
 
+    /**
+     * Создаёт связь RecipeIngredient, если её ещё нет.
+     * Использует готовые объекты Recipe и Ingredient (без поиска по ID).
+     */
     private void ensureRecipeIngredient(Recipe recipe, Ingredient ingredient, double weightInGrams) {
-        // Проверяем, нет ли уже такой связи
-        long count = recipeIngredientRepository.countByRecipeIdAndIngredientId(recipe.getId(), ingredient.getId());
+        long count = recipeIngredientRepository.countByRecipeAndIngredient(recipe, ingredient);
         if (count == 0) {
             RecipeIngredient ri = new RecipeIngredient();
             ri.setRecipe(recipe);
@@ -114,9 +119,11 @@ public class DataInitializer implements CommandLineRunner {
             ri.setWeightInGrams(weightInGrams);
             recipeIngredientRepository.save(ri);
         }
+        // Если count > 0 — ничего не делаем: связь уже есть.
     }
 
     // Вспомогательный класс для передачи данных о продукте
     private record ProductData(String name, double fats, double proteins, double carbs) {}
 }
+
 
