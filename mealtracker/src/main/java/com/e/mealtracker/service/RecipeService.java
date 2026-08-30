@@ -107,4 +107,12 @@ public class RecipeService {
         dto.setIngredients(ingredientDtos);
         return dto;
     }
+    @Transactional
+    public void deleteRecipe(Long id) {
+        if (!recipeRepository.existsById(id)) {
+            throw new IllegalArgumentException("Рецепт с ID " + id + " не найден");
+        }
+        recipeRepository.deleteById(id);
+    }
 }
+
