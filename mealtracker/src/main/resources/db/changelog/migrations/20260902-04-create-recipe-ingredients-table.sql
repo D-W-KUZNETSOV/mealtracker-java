@@ -1,12 +1,9 @@
 --liquibase formatted sql
---changeset dmitriy:20260902-04-create-recipe-ingredients-table-v1
-CREATE TABLE recipe_ingredients (
+--changeset dmitriy:20260902-04-create-recipe-ingredients-table-v1 runInTransaction:false
+CREATE TABLE IF NOT EXISTS recipe_ingredients (
     id BIGSERIAL PRIMARY KEY,
     recipe_id BIGINT NOT NULL,
     ingredient_id BIGINT NOT NULL,
-    weight_in_grams DOUBLE PRECISION NOT NULL,
-    CONSTRAINT fk_recipe_ingredients_recipe FOREIGN KEY (recipe_id) REFERENCES recipes(id),
-    CONSTRAINT fk_recipe_ingredients_ingredient FOREIGN KEY (ingredient_id) REFERENCES ingredients(id)
+    weight_in_grams DOUBLE PRECISION NOT NULL
 );
---rollback
-DROP TABLE IF EXISTS recipe_ingredients;
+
