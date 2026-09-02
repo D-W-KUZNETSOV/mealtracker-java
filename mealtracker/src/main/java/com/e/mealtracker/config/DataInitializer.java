@@ -32,7 +32,7 @@ public class DataInitializer implements CommandLineRunner {
 
         // Базовый набор продуктов: name, fats, proteins, carbs (на 100 г)
         List<ProductData> baseProducts = List.of(
-                new ProductData("Куриная грудка", 5.0, 25.0, 0.0),
+                new ProductData("Куриная грудка", 1.5, 23.5, 0.0),
                 new ProductData("Гречка варёная", 1.5, 4.2, 28.7),
                 new ProductData("Яйцо куриное (1 шт)", 5.3, 6.3, 0.7),
                 new ProductData("Творог 5%", 5.0, 17.0, 3.0),

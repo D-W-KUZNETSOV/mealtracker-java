@@ -1,0 +1,40 @@
+package com.e.mealtracker.domain;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "user_goals")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserGoals {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private double currentWeightKg;
+
+    @Column(nullable = false)
+    private double proteinPerKg;
+
+    @Column
+    private Integer targetCalories;
+
+    @Column
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
+}
+

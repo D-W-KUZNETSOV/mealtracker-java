@@ -9,5 +9,6 @@ public class IngredientResponseDto {
     private double fatsPer100g;
     private double proteinsPer100g;
     private double carbsPer100g;
+    private Double caloriesPer100g;
     // totalCaloriesPer100g можно добавить сразу здесь
 }
