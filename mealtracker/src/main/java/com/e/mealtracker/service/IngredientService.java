@@ -6,6 +6,7 @@ import com.e.mealtracker.dto.IngredientResponseDto;
 import com.e.mealtracker.dto.IngredientUpdateDTO;
 import com.e.mealtracker.exception.ResourceNotFoundException;
 import com.e.mealtracker.repository.IngredientRepository;
+import com.e.mealtracker.repository.RecipeIngredientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class IngredientService {
 
     private final IngredientRepository ingredientRepository;
+    private final RecipeIngredientRepository recipeIngredientRepository;
 
     public boolean existsById(Long id) {
         return ingredientRepository.existsById(id);
@@ -64,9 +66,12 @@ public class IngredientService {
         return toResponseDto(saved);
     }
 
+    @Transactional
     public void deleteById(Long id) {
+        recipeIngredientRepository.deleteByIngredientId(id);
         ingredientRepository.deleteById(id);
     }
+
 
     private IngredientResponseDto toResponseDto(Ingredient ingredient) {
         IngredientResponseDto dto = new IngredientResponseDto();

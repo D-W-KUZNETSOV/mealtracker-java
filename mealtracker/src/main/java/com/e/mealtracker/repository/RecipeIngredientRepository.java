@@ -17,6 +17,8 @@ public interface RecipeIngredientRepository extends JpaRepository<RecipeIngredie
     Optional<RecipeIngredient> findByRecipeAndIngredient(Recipe recipe, Ingredient ingredient);
     List<RecipeIngredient> findAllByRecipeId(Long recipeId);
 
+    void deleteByIngredientId(Long ingredientId);
+
 }
 
 

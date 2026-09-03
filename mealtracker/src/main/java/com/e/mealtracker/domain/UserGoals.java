@@ -1,5 +1,6 @@
 package com.e.mealtracker.domain;
 
+import com.e.mealtracker.util.ActivityLevel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -36,5 +37,8 @@ public class UserGoals {
             createdAt = LocalDateTime.now();
         }
     }
+    @Enumerated(EnumType.STRING) // лучше хранить как строку: SEDENTARY, LIGHT и т.д.
+    private ActivityLevel activityLevel = ActivityLevel.SEDENTARY; // дефолт
+
 }
 

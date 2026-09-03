@@ -5,12 +5,9 @@ import com.e.mealtracker.dto.RecipePortionRequest;
 import com.e.mealtracker.service.StatsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/stats")
@@ -19,9 +16,22 @@ public class StatsController {
 
     private final StatsService statsService;
 
-    @PostMapping("/daily")
-    public ResponseEntity<DailyStatsDto> calculateDailyStats(@RequestBody List<RecipePortionRequest> portions) {
-        DailyStatsDto stats = statsService.calculateStats(portions);
+    @PostMapping("/daily/add")
+    public ResponseEntity<DailyStatsDto> addPortion(@RequestBody RecipePortionRequest portion) {
+        DailyStatsDto stats = statsService.addPortionAndReturnTodayStats(portion);
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/daily")
+    public ResponseEntity<DailyStatsDto> getTodayStats() {
+        DailyStatsDto stats = statsService.getTodayStats();
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/daily/{date}")
+    public ResponseEntity<DailyStatsDto> getStatsByDate(@PathVariable String date) {
+        LocalDate parsedDate = LocalDate.parse(date); // формат YYYY-MM-DD
+        DailyStatsDto stats = statsService.getStatsByDate(parsedDate);
         return ResponseEntity.ok(stats);
     }
 }

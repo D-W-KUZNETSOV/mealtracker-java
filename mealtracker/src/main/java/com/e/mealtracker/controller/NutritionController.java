@@ -19,13 +19,15 @@ public class NutritionController {
     private final NutritionCalculationService calculationService;
 
     @PostMapping("/goals")
-    @Operation(summary = "Установить или обновить цели пользователя (вес, белок, калории)")
+    @Operation(summary = "Установить или обновить цели пользователя (вес, белок, калории, активность)")
     @ApiResponse(responseCode = "200", description = "Цели успешно сохранены")
+    @ApiResponse(responseCode = "400", description = "Некорректные данные")
     public ResponseEntity<UserGoals> setGoals(@Valid @RequestBody GoalsRequest request) {
         UserGoals saved = calculationService.setUserGoals(
                 request.getCurrentWeightKg(),
                 request.getProteinPerKg(),
-                request.getTargetCalories()
+                request.getTargetCalories(),
+                request.getActivityLevel()  // Добавляем новый параметр
         );
         return ResponseEntity.ok(saved);
     }

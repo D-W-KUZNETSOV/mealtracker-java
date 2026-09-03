@@ -3,6 +3,7 @@ package com.e.mealtracker.service;
 import com.e.mealtracker.domain.UserGoals;
 import com.e.mealtracker.dto.TargetProteinResponse;
 import com.e.mealtracker.repository.UserGoalsRepository;
+import com.e.mealtracker.util.ActivityLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,19 +21,28 @@ public class NutritionCalculationService {
 
         double weightKg;
         double proteinPerKg;
+        double activityMultiplier;
 
         if (goalsOpt.isPresent()) {
             UserGoals goals = goalsOpt.get();
             weightKg = goals.getCurrentWeightKg();
             proteinPerKg = goals.getProteinPerKg();
+            activityMultiplier = goals.getActivityLevel().getMultiplier();
         } else {
             weightKg = 81.0;
-            proteinPerKg = 1.0;
+            proteinPerKg = 1.6; // дефолтная норма
+            activityMultiplier = ActivityLevel.SEDENTARY.getMultiplier();
         }
 
-        return new TargetProteinResponse(weightKg, weightKg * proteinPerKg);
+        // Итоговая норма: белок на кг × множитель активности
+        double targetProtein = weightKg * proteinPerKg * activityMultiplier;
+
+        return new TargetProteinResponse(weightKg, targetProtein);
     }
-    public UserGoals setUserGoals(double currentWeightKg, double proteinPerKg, Integer targetCalories) {
+
+    // ОСНОВНОЙ МЕТОД - с ActivityLevel
+    public UserGoals setUserGoals(double currentWeightKg, double proteinPerKg,
+                                  Integer targetCalories, ActivityLevel activityLevel) {
         Optional<UserGoals> existingOpt = userGoalsRepository.findFirstByOrderByCreatedAtDesc();
         UserGoals goals;
 
@@ -42,31 +52,35 @@ public class NutritionCalculationService {
             goals.setCurrentWeightKg(currentWeightKg);
             goals.setProteinPerKg(proteinPerKg);
             goals.setTargetCalories(targetCalories);
+            goals.setActivityLevel(activityLevel); // ОБНОВЛЯЕМ activityLevel
         } else {
             // Если записи нет — создаём новую
             goals = new UserGoals();
             goals.setCurrentWeightKg(currentWeightKg);
             goals.setProteinPerKg(proteinPerKg);
             goals.setTargetCalories(targetCalories);
+            goals.setActivityLevel(activityLevel); // УСТАНАВЛИВАЕМ activityLevel
             // createdAt заполнится через @PrePersist
         }
 
         return userGoalsRepository.save(goals);
     }
 
+    // Перегруженный метод для обратной совместимости (если нужен)
+    // Можно удалить, если не используется
+    @Deprecated
+    public UserGoals setUserGoals(double currentWeightKg, double proteinPerKg, Integer targetCalories) {
+        // Используем дефолтный уровень активности
+        return setUserGoals(currentWeightKg, proteinPerKg, targetCalories, ActivityLevel.SEDENTARY);
+    }
 
-
-    // Старый метод с параметром можно оставить, если он где‑то ещё нужен,
-    // или пометить как @Deprecated, чтобы не использовать.
     @Deprecated
     public double calculateTargetProteinGrams(double weightKg) {
-        // Тут была старая логика — можно удалить или оставить для тестов
         return weightKg * 1.0;
     }
+
     public Optional<UserGoals> getCurrentGoals() {
         return userGoalsRepository.findFirstByOrderByCreatedAtDesc();
     }
-
 }
-
 
