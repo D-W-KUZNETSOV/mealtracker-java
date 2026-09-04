@@ -3,6 +3,8 @@ package com.e.mealtracker.service;
 import com.e.mealtracker.domain.*;
 import com.e.mealtracker.dto.DailyStatsDto;
 import com.e.mealtracker.dto.RecipePortionRequest;
+import com.e.mealtracker.exception.InvalidPortionWeightException;
+import com.e.mealtracker.exception.RecipeNotFoundException;
 import com.e.mealtracker.repository.DailyLogRepository;
 import com.e.mealtracker.repository.RecipeRepository;
 import com.e.mealtracker.repository.UserGoalsRepository;
@@ -24,13 +26,13 @@ public class StatsService {
 
     @Transactional
     public DailyStatsDto addPortionAndReturnTodayStats(RecipePortionRequest portion) {
-        Recipe recipe = recipeRepository.findById(portion.getRecipeId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Рецепт с ID " + portion.getRecipeId() + " не найден"));
-
+        // Проверка веса — теперь с кастомным исключением
         if (portion.getWeightInGrams() <= 0) {
-            throw new IllegalArgumentException("Вес порции должен быть больше 0");
+            throw new InvalidPortionWeightException(portion.getWeightInGrams());
         }
+
+        Recipe recipe = recipeRepository.findById(portion.getRecipeId())
+                .orElseThrow(() -> new RecipeNotFoundException(portion.getRecipeId()));
 
         DailyLog log = new DailyLog();
         log.setRecipe(recipe);
@@ -41,6 +43,7 @@ public class StatsService {
 
         return calculateStatsForDate(LocalDate.now());
     }
+
 
     public DailyStatsDto getTodayStats() {
         return calculateStatsForDate(LocalDate.now());
