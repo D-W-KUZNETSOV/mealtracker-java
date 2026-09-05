@@ -3,6 +3,8 @@ package com.e.mealtracker.exception;
 import com.e.mealtracker.dto.ApiError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -14,21 +16,48 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RecipeNotFoundException.class)
     public ResponseEntity<ApiError> handleRecipeNotFound(RecipeNotFoundException ex) {
         ApiError error = new ApiError("RECIPE_NOT_FOUND", ex.getMessage(), Instant.now());
-        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND); // 404 — логично: ресурса нет
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(InvalidPortionWeightException.class)
     public ResponseEntity<ApiError> handleInvalidPortionWeight(InvalidPortionWeightException ex) {
         ApiError error = new ApiError("INVALID_PORTION_WEIGHT", ex.getMessage(), Instant.now());
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST); // 400 — неверный ввод
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    // Общий запасной обработчик
+    // Добавляем обработку ошибок из StatsService
+    @ExceptionHandler(InvalidRecipeDataException.class)
+    public ResponseEntity<ApiError> handleInvalidRecipeData(InvalidRecipeDataException ex) {
+        ApiError error = new ApiError("INVALID_RECIPE_DATA", ex.getMessage(), Instant.now());
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IncompleteIngredientDataException.class)
+    public ResponseEntity<ApiError> handleIncompleteIngredientData(IncompleteIngredientDataException ex) {
+        ApiError error = new ApiError("INCOMPLETE_INGREDIENT_DATA", ex.getMessage(), Instant.now());
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // Обработка стандартной валидации (если используешь @Valid в контроллерах)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        StringBuilder messages = new StringBuilder();
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+            if (messages.length() > 0) messages.append(", ");
+            messages.append(error.getField()).append(": ").append(error.getDefaultMessage());
+        }
+        ApiError apiError = new ApiError("VALIDATION_ERROR", messages.toString(), Instant.now());
+        return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
+    }
+
+    // Глобальный "страховочный" хендлер для любых непредвиденных ошибок
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGenericException(Exception ex) {
-        // В логах всё равно будет полный стек — это важно для отладки
-        ApiError error = new ApiError("INTERNAL_ERROR", "Что-то пошло не так", Instant.now());
+        // В продакшене НИКОГДА не отдавай ex.getMessage() клиенту — это утечка реализации.
+        // Лучше логируй ошибку, а тут отдай общее сообщение.
+        ApiError error = new ApiError("INTERNAL_SERVER_ERROR", "Произошла непредвиденная ошибка на сервере", Instant.now());
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
+
 

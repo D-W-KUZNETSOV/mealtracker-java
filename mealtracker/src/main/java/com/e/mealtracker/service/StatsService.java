@@ -3,7 +3,9 @@ package com.e.mealtracker.service;
 import com.e.mealtracker.domain.*;
 import com.e.mealtracker.dto.DailyStatsDto;
 import com.e.mealtracker.dto.RecipePortionRequest;
+import com.e.mealtracker.exception.IncompleteIngredientDataException;
 import com.e.mealtracker.exception.InvalidPortionWeightException;
+import com.e.mealtracker.exception.InvalidRecipeDataException;
 import com.e.mealtracker.exception.RecipeNotFoundException;
 import com.e.mealtracker.repository.DailyLogRepository;
 import com.e.mealtracker.repository.RecipeRepository;
@@ -70,7 +72,7 @@ public class StatsService {
                         .sum();
 
                 if (totalRecipeWeight == 0) {
-                    throw new IllegalArgumentException(
+                    throw new InvalidRecipeDataException(
                             "Общий вес ингредиентов рецепта равен 0. Проверьте веса в рецепте.");
                 }
 
@@ -81,7 +83,7 @@ public class StatsService {
                             || ing.getProteinsPer100g() == null
                             || ing.getFatsPer100g() == null
                             || ing.getCarbsPer100g() == null) {
-                        throw new IllegalArgumentException(
+                        throw new IncompleteIngredientDataException(
                                 "У ингредиента '" + ing.getName() + "' неполные данные КБЖУ.");
                     }
 
@@ -105,12 +107,11 @@ public class StatsService {
                 targetProtein = goals.getCurrentWeightKg() * goals.getProteinPerKg();
 
                 if (targetProtein > 0) {
-                    proteinProgressPercent = Math.round(
-                            (totalProteins / targetProtein) * 1000.0
-                    ) / 10.0;
+                    proteinProgressPercent = (totalProteins / targetProtein) * 100.0;
                 }
             }
         }
+
 
         return new DailyStatsDto(
                 totalCalories,

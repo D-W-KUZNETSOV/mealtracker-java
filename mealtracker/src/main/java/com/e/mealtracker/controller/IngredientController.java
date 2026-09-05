@@ -73,7 +73,11 @@ public class IngredientController {
                 .id(ingredient.getId())
                 .name(ingredient.getName())
                 .caloriesPer100g(ingredient.getCaloriesPer100g())
+                .proteinsPer100g(ingredient.getProteinsPer100g()) // если есть в DTO
+                .fatsPer100g(ingredient.getFatsPer100g())         // если есть в DTO
+                .carbsPer100g(ingredient.getCarbsPer100g())       // если есть в DTO
                 .build();
     }
+
 }
 

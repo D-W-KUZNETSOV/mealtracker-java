@@ -50,8 +50,9 @@ public class IngredientService {
 
     @Transactional(readOnly = true)
     public List<Ingredient> findAllByUsername(String username) {
-        return ingredientRepository.findAllByUsername(username);
+        return ingredientRepository.findAllForUser(username);
     }
+
 
     public IngredientResponseDto updateById(Long id, IngredientUpdateDTO dto, String username) {
         Ingredient ingredient = ingredientRepository.findByIdAndUsername(id, username)
