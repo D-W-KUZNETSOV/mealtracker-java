@@ -20,6 +20,9 @@ public class UserGoals {
     private Long id;
 
     @Column(nullable = false)
+    private String username; // <-- привязка к пользователю
+
+    @Column(nullable = false)
     private double currentWeightKg;
 
     @Column(nullable = false)
@@ -31,14 +34,15 @@ public class UserGoals {
     @Column
     private LocalDateTime createdAt;
 
+    @Enumerated(EnumType.STRING)
+    private ActivityLevel activityLevel = ActivityLevel.SEDENTARY;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
     }
-    @Enumerated(EnumType.STRING) // лучше хранить как строку: SEDENTARY, LIGHT и т.д.
-    private ActivityLevel activityLevel = ActivityLevel.SEDENTARY; // дефолт
-
 }
+
 

@@ -25,36 +25,35 @@ public class StatsService {
     private final UserGoalsRepository userGoalsRepository;
 
     @Transactional
-    public DailyStatsDto addPortionAndReturnTodayStats(RecipePortionRequest portion) {
-        // Проверка веса — теперь с кастомным исключением
+    public DailyStatsDto addPortionAndReturnTodayStats(RecipePortionRequest portion, String username) {
         if (portion.getWeightInGrams() <= 0) {
             throw new InvalidPortionWeightException(portion.getWeightInGrams());
         }
 
-        Recipe recipe = recipeRepository.findById(portion.getRecipeId())
+        Recipe recipe = recipeRepository.findByIdAndUsername(portion.getRecipeId(), username)
                 .orElseThrow(() -> new RecipeNotFoundException(portion.getRecipeId()));
 
         DailyLog log = new DailyLog();
         log.setRecipe(recipe);
         log.setWeightInGrams(portion.getWeightInGrams());
         log.setDate(LocalDate.now());
+        log.setUsername(username);
 
         dailyLogRepository.save(log);
 
-        return calculateStatsForDate(LocalDate.now());
+        return calculateStatsForDate(LocalDate.now(), username);
     }
 
-
-    public DailyStatsDto getTodayStats() {
-        return calculateStatsForDate(LocalDate.now());
+    public DailyStatsDto getTodayStats(String username) {
+        return calculateStatsForDate(LocalDate.now(), username);
     }
 
-    public DailyStatsDto getStatsByDate(LocalDate date) {
-        return calculateStatsForDate(date);
+    public DailyStatsDto getStatsByDate(LocalDate date, String username) {
+        return calculateStatsForDate(date, username);
     }
 
-    private DailyStatsDto calculateStatsForDate(LocalDate date) {
-        List<DailyLog> logs = dailyLogRepository.findByDate(date);
+    private DailyStatsDto calculateStatsForDate(LocalDate date, String username) {
+        List<DailyLog> logs = dailyLogRepository.findByDateAndUsername(date, username);
 
         double totalCalories = 0;
         double totalProteins = 0;
@@ -96,8 +95,7 @@ public class StatsService {
             }
         }
 
-        // Получаем последнюю сохранённую цель пользователя
-        Optional<UserGoals> goalsOpt = userGoalsRepository.findFirstByOrderByCreatedAtDesc();
+        Optional<UserGoals> goalsOpt = userGoalsRepository.findFirstByUsernameOrderByCreatedAtDesc(username);
         Double targetProtein = null;
         Double proteinProgressPercent = null;
 
@@ -124,5 +122,3 @@ public class StatsService {
         );
     }
 }
-
-

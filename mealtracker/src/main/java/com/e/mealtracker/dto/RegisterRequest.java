@@ -1,2 +1,10 @@
-package com.e.mealtracker.dto;public class RegisterRequest {
+package com.e.mealtracker.dto;
+
+import lombok.Data;
+
+@Data
+public class RegisterRequest {
+    private String username;
+    private String password;
 }
+

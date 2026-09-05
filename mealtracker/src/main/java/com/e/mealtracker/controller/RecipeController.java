@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,35 +29,46 @@ public class RecipeController {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error -> {
-            // Берем только имя поля, без пути (например, "weightInGrams" вместо "ingredients[0].weightInGrams")
-            String fieldName = error.getField();
-            errors.put(fieldName, error.getDefaultMessage());
-        });
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                errors.put(error.getField(), error.getDefaultMessage())
+        );
+        return ResponseEntity.badRequest().body(errors);
     }
-
 
     @GetMapping
-    public List<RecipeDto> getAllRecipes( @RequestParam(required = false) String category) {
-        return recipeService.getAllRecipes(category);
+    public List<RecipeDto> getAllRecipes(
+            @RequestParam(required = false) String category,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails.getUsername();
+        return recipeService.getAllRecipesByUser(category, username);
     }
+
     @PostMapping
-    public ResponseEntity<RecipeDto> createRecipe(@Valid @RequestBody CreateRecipeRequest request) {
-        RecipeDto saved = recipeService.saveRecipe(request);
-        return ResponseEntity.ok(saved);
+    public ResponseEntity<RecipeDto> createRecipe(
+            @Valid @RequestBody CreateRecipeRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails.getUsername();
+        RecipeDto saved = recipeService.saveRecipe(request, username);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse> deleteRecipe(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse> deleteRecipe(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails.getUsername();
+
         try {
-            recipeService.deleteRecipe(id);
+            recipeService.deleteRecipeByUser(id, username);
             return ResponseEntity.ok(new ApiResponse("success", "Рецепт успешно удалён"));
         } catch (IllegalArgumentException e) {
+            // Это и есть «не найден или не принадлежит пользователю»
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiResponse("error", "Рецепт не найден"));
-
+                    .body(new ApiResponse("error", e.getMessage()));
         }
     }
+
+    // Опционально: отдельный хендлер для бизнес-ошибок, если они могут быть в других местах
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
         log.warn("Бизнес-ошибка: {}", ex.getMessage());
@@ -63,8 +76,6 @@ public class RecipeController {
         body.put("error", ex.getMessage());
         return ResponseEntity.badRequest().body(body);
     }
-
-
-
 }
+
 

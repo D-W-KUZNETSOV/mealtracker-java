@@ -6,6 +6,7 @@ import com.e.mealtracker.repository.UserGoalsRepository;
 import com.e.mealtracker.util.ActivityLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -15,9 +16,34 @@ public class NutritionCalculationService {
 
     private final UserGoalsRepository userGoalsRepository;
 
-    // Считает по данным из БД. Если нет целей — берёт дефолт.
-    public TargetProteinResponse calculateTargetProteinFromGoals() {
-        Optional<UserGoals> goalsOpt = userGoalsRepository.findFirstByOrderByCreatedAtDesc();
+    @Transactional
+    public UserGoals setUserGoals(String username, double currentWeightKg, double proteinPerKg,
+                                  Integer targetCalories, ActivityLevel activityLevel) {
+        Optional<UserGoals> existingOpt =
+                userGoalsRepository.findFirstByUsernameOrderByCreatedAtDesc(username);
+        UserGoals goals;
+
+        if (existingOpt.isPresent()) {
+            goals = existingOpt.get();
+            goals.setCurrentWeightKg(currentWeightKg);
+            goals.setProteinPerKg(proteinPerKg);
+            goals.setTargetCalories(targetCalories);
+            goals.setActivityLevel(activityLevel);
+        } else {
+            goals = new UserGoals();
+            goals.setUsername(username);
+            goals.setCurrentWeightKg(currentWeightKg);
+            goals.setProteinPerKg(proteinPerKg);
+            goals.setTargetCalories(targetCalories);
+            goals.setActivityLevel(activityLevel);
+        }
+
+        return userGoalsRepository.save(goals);
+    }
+
+    public TargetProteinResponse calculateTargetProteinFromGoals(String username) {
+        Optional<UserGoals> goalsOpt =
+                userGoalsRepository.findFirstByUsernameOrderByCreatedAtDesc(username);
 
         double weightKg;
         double proteinPerKg;
@@ -30,57 +56,16 @@ public class NutritionCalculationService {
             activityMultiplier = goals.getActivityLevel().getMultiplier();
         } else {
             weightKg = 81.0;
-            proteinPerKg = 1.6; // дефолтная норма
+            proteinPerKg = 1.6;
             activityMultiplier = ActivityLevel.SEDENTARY.getMultiplier();
         }
 
-        // Итоговая норма: белок на кг × множитель активности
         double targetProtein = weightKg * proteinPerKg * activityMultiplier;
-
         return new TargetProteinResponse(weightKg, targetProtein);
     }
 
-    // ОСНОВНОЙ МЕТОД - с ActivityLevel
-    public UserGoals setUserGoals(double currentWeightKg, double proteinPerKg,
-                                  Integer targetCalories, ActivityLevel activityLevel) {
-        Optional<UserGoals> existingOpt = userGoalsRepository.findFirstByOrderByCreatedAtDesc();
-        UserGoals goals;
-
-        if (existingOpt.isPresent()) {
-            // Если запись есть — обновляем её
-            goals = existingOpt.get();
-            goals.setCurrentWeightKg(currentWeightKg);
-            goals.setProteinPerKg(proteinPerKg);
-            goals.setTargetCalories(targetCalories);
-            goals.setActivityLevel(activityLevel); // ОБНОВЛЯЕМ activityLevel
-        } else {
-            // Если записи нет — создаём новую
-            goals = new UserGoals();
-            goals.setCurrentWeightKg(currentWeightKg);
-            goals.setProteinPerKg(proteinPerKg);
-            goals.setTargetCalories(targetCalories);
-            goals.setActivityLevel(activityLevel); // УСТАНАВЛИВАЕМ activityLevel
-            // createdAt заполнится через @PrePersist
-        }
-
-        return userGoalsRepository.save(goals);
-    }
-
-    // Перегруженный метод для обратной совместимости (если нужен)
-    // Можно удалить, если не используется
-    @Deprecated
-    public UserGoals setUserGoals(double currentWeightKg, double proteinPerKg, Integer targetCalories) {
-        // Используем дефолтный уровень активности
-        return setUserGoals(currentWeightKg, proteinPerKg, targetCalories, ActivityLevel.SEDENTARY);
-    }
-
-    @Deprecated
-    public double calculateTargetProteinGrams(double weightKg) {
-        return weightKg * 1.0;
-    }
-
-    public Optional<UserGoals> getCurrentGoals() {
-        return userGoalsRepository.findFirstByOrderByCreatedAtDesc();
+    public Optional<UserGoals> getCurrentGoals(String username) {
+        return userGoalsRepository.findFirstByUsernameOrderByCreatedAtDesc(username);
     }
 }
 

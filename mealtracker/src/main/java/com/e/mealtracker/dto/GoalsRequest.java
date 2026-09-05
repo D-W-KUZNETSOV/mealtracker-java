@@ -63,3 +63,4 @@ public class GoalsRequest {
         this.activityLevel = activityLevel;
     }
 }
+
