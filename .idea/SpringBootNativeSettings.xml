@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SpringBootNativeSettings">
+    <option name="linkedExternalProjectsSettings">
+      <NativeProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/mealtracker/src/main/java/com/e/mealtracker/MealtrackerApplication.java" />
+        <option name="qualifiedMainClassName" value="com.e.mealtracker.MealtrackerApplication" />
+        <option name="runConfigurationName" value="MealtrackerApplication" />
+        <option name="runConfigurationType" value="APPLICATION" />
+      </NativeProjectSettings>
+    </option>
+  </component>
+</project>
