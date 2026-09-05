@@ -13,4 +13,8 @@ public class IngredientDto {
     private Long id;
     private String name;
     private Double caloriesPer100g;
+    private Double proteinsPer100g;
+    private Double fatsPer100g;
+    private Double carbsPer100g;
 }
+

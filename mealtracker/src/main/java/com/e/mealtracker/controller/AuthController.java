@@ -4,6 +4,7 @@ import com.e.mealtracker.dto.LoginRequest;
 import com.e.mealtracker.dto.RegisterRequest;
 import com.e.mealtracker.security.JwtService;
 import com.e.mealtracker.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,8 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/login")
+    @Operation(summary = "Вход для пользователя")
+
     public ResponseEntity<String> login(@RequestBody LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
@@ -33,6 +36,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @Operation(summary = "Регистрация нового пользователя")
     public ResponseEntity<Void> register(@RequestBody RegisterRequest request) {
         userService.createUser(request.getUsername(), request.getPassword());
         return ResponseEntity.status(HttpStatus.CREATED).build();
