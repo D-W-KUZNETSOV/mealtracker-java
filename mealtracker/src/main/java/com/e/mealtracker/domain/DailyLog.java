@@ -27,4 +27,9 @@ public class DailyLog {
 
     @Column(name = "date", nullable = false)
     private LocalDate date;
+
+    // <-- Добавлено поле username
+    @Column(name = "username", nullable = false)
+    private String username;
 }
+

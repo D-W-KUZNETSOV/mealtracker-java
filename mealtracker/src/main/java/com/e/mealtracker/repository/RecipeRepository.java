@@ -10,9 +10,18 @@ import java.util.Optional;
 
 @Repository
 public interface RecipeRepository extends JpaRepository<Recipe, Long> {
+
+    List<Recipe> findByUsername(String username);
+
+    List<Recipe> findByUsernameAndCategory(String username, MealType category);
+
+    Optional<Recipe> findByIdAndUsername(Long id, String username);
+
+    // Старые методы можно оставить — пригодятся для админки позже
     List<Recipe> findByCategory(MealType category);
     Optional<Recipe> findByName(String name);
+    Optional<Recipe> findByNameAndUsername(String name, String username);
 
-    // Больше ничего не нужно: save, findAll, findById уже есть благодаря JpaRepository
 }
+
 

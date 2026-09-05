@@ -4,15 +4,18 @@ import com.e.mealtracker.domain.Ingredient;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
 
-    // Этот метод Spring сгенерирует сам: SELECT * FROM ingredients WHERE name = ?
-    Optional<Ingredient> findByName(String name);
+    Optional<Ingredient> findByNameIgnoreCaseAndUsername(String name, String username);
 
-    Optional<Ingredient> findByNameIgnoreCase(String name);
+    List<Ingredient> findAllByUsername(String username);
 
+    boolean existsByIdAndUsername(Long id, String username);
 
+    Optional<Ingredient> findByIdAndUsername(Long id, String username);
 }
+

@@ -8,9 +8,13 @@ import com.e.mealtracker.exception.ResourceNotFoundException;
 import com.e.mealtracker.repository.IngredientRepository;
 import com.e.mealtracker.repository.RecipeIngredientRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -19,12 +23,12 @@ public class IngredientService {
     private final IngredientRepository ingredientRepository;
     private final RecipeIngredientRepository recipeIngredientRepository;
 
-    public boolean existsById(Long id) {
-        return ingredientRepository.existsById(id);
+    public boolean existsById(Long id, String username) {
+        return ingredientRepository.existsByIdAndUsername(id, username);
     }
 
-    public Ingredient saveIngredient(CreateIngredientRequest request) {
-        return ingredientRepository.findByNameIgnoreCase(request.getName())
+    public Ingredient saveIngredient(CreateIngredientRequest request, String username) {
+        return ingredientRepository.findByNameIgnoreCaseAndUsername(request.getName(), username)
                 .map(existing -> {
                     existing.setCaloriesPer100g(request.getCaloriesPer100g());
                     existing.setProteinsPer100g(request.getProteinsPer100g());
@@ -35,6 +39,7 @@ public class IngredientService {
                 .orElseGet(() -> {
                     Ingredient newIngredient = new Ingredient();
                     newIngredient.setName(request.getName());
+                    newIngredient.setUsername(username);
                     newIngredient.setCaloriesPer100g(request.getCaloriesPer100g());
                     newIngredient.setProteinsPer100g(request.getProteinsPer100g());
                     newIngredient.setFatsPer100g(request.getFatsPer100g());
@@ -43,9 +48,16 @@ public class IngredientService {
                 });
     }
 
-    public IngredientResponseDto updateById(Long id, IngredientUpdateDTO dto) {
-        Ingredient ingredient = ingredientRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ingredient not found with id: " + id));
+    @Transactional(readOnly = true)
+    public List<Ingredient> findAllByUsername(String username) {
+        return ingredientRepository.findAllByUsername(username);
+    }
+
+    public IngredientResponseDto updateById(Long id, IngredientUpdateDTO dto, String username) {
+        Ingredient ingredient = ingredientRepository.findByIdAndUsername(id, username)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Ингредиент с id=" + id + " не найден или не принадлежит пользователю " + username
+                ));
 
         if (dto.getName() != null) {
             ingredient.setName(dto.getName());
@@ -66,12 +78,14 @@ public class IngredientService {
         return toResponseDto(saved);
     }
 
-    @Transactional
-    public void deleteById(Long id) {
+    public void deleteById(Long id, String username) {
+        Ingredient ingredient = ingredientRepository.findByIdAndUsername(id, username)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Ингредиент с id=" + id + " не найден или не принадлежит пользователю " + username
+                ));
         recipeIngredientRepository.deleteByIngredientId(id);
-        ingredientRepository.deleteById(id);
+        ingredientRepository.delete(ingredient);
     }
-
 
     private IngredientResponseDto toResponseDto(Ingredient ingredient) {
         IngredientResponseDto dto = new IngredientResponseDto();
@@ -84,3 +98,4 @@ public class IngredientService {
         return dto;
     }
 }
+
