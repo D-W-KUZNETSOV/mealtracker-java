@@ -4,7 +4,22 @@
     <remote-repository>
       <option name="id" value="central" />
       <option name="name" value="Central Repository" />
+      <option name="url" value="https://mirror.yandex.ru/maven2" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="yandex" />
+      <option name="name" value="Yandex Maven Repository" />
+      <option name="url" value="https://mirror.yandex.ru/maven2" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="central" />
+      <option name="name" value="Central Repository" />
       <option name="url" value="https://repo.maven.apache.org/maven2" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="aliyun" />
+      <option name="name" value="Aliyun Maven Repository" />
+      <option name="url" value="https://maven.aliyun.com/repository/public" />
     </remote-repository>
     <remote-repository>
       <option name="id" value="central" />

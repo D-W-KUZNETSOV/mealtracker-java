@@ -29,4 +29,12 @@ public class RecipeIngredient {
     // Вес ингредиента именно в этом рецепте (в граммах)
     @Column(nullable = false)
     private double weightInGrams;
+
+    public Ingredient getIngredient() {
+        return ingredient;
+    }
+
+    public double getWeightInGrams() {
+        return weightInGrams;
+    }
 }
