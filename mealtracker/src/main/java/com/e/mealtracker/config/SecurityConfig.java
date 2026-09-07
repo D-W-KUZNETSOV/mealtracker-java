@@ -1,9 +1,12 @@
 package com.e.mealtracker.config;
 
 import com.e.mealtracker.security.JwtAuthenticationFilter;
+import jakarta.servlet.annotation.WebServlet;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,6 +19,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
+
 
 import java.util.List;
 
@@ -29,11 +34,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // ✅ Включаем CORS
-                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/h2-console/**"))
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -41,6 +50,7 @@ public class SecurityConfig {
 
         return http.build();
     }
+
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -89,4 +99,19 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
+
+
+    @Bean
+    public ServletRegistrationBean<org.h2.server.web.JakartaWebServlet> h2ConsoleServlet() {
+        ServletRegistrationBean<org.h2.server.web.JakartaWebServlet> bean =
+                new ServletRegistrationBean<>(new org.h2.server.web.JakartaWebServlet(), "/h2-console/*");
+        bean.addInitParameter("webAllowOthers", "true");
+        return bean;
+    }
+
+
+
+
+
+
 }

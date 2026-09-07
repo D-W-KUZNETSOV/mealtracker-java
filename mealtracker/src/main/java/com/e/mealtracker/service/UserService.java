@@ -1,5 +1,6 @@
 package com.e.mealtracker.service;
 
+import com.e.mealtracker.dto.RegisterRequest;
 import com.e.mealtracker.entity.Role;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.repository.UserRepository;
@@ -15,16 +16,22 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // ВАЖНО: здесь в скобках указан параметр RegisterRequest request
     @Transactional
-    public void createUser(String username, String password) {
-        if (userRepository.existsByUsername(username)) {
+    public void registerUser(RegisterRequest request) {
+        if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("Пользователь уже существует");
         }
 
         User user = new User();
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setRole(Role.USER); // <-- теперь всё ок: передаём enum, а не строку
+        user.setUsername(request.getUsername());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        // Сохраняем email из DTO
+        user.setEmail(request.getEmail());
+
+        // Используем enum Role.USER, так как у тебя Role — это enum, а не сущность
+        user.setRole(Role.USER);
 
         userRepository.save(user);
     }

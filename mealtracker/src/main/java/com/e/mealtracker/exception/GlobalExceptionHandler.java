@@ -1,6 +1,7 @@
 package com.e.mealtracker.exception;
 
 import com.e.mealtracker.dto.ApiError;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -9,7 +10,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.time.Instant;
-
+@Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -52,9 +53,11 @@ public class GlobalExceptionHandler {
 
     // Глобальный "страховочный" хендлер для любых непредвиденных ошибок
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiError> handleGenericException(Exception ex) {
-        // В продакшене НИКОГДА не отдавай ex.getMessage() клиенту — это утечка реализации.
-        // Лучше логируй ошибку, а тут отдай общее сообщение.
+   public ResponseEntity<ApiError> handleGenericException(Exception ex) {
+       //  ✅ Логируем ошибку в консоль с полным стектрейсом
+        log.error("Ошибка на сервере: ", ex);
+
+        // В продакшене НИКОГДА не отдавай ex.getMessage() клиенту
         ApiError error = new ApiError("INTERNAL_SERVER_ERROR", "Произошла непредвиденная ошибка на сервере", Instant.now());
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }

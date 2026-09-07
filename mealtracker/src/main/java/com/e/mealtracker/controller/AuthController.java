@@ -5,6 +5,7 @@ import com.e.mealtracker.dto.RegisterRequest;
 import com.e.mealtracker.security.JwtService;
 import com.e.mealtracker.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,10 +37,10 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    @Operation(summary = "Регистрация нового пользователя")
-    public ResponseEntity<Void> register(@RequestBody RegisterRequest request) {
-        userService.createUser(request.getUsername(), request.getPassword());
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+        // Вызываем НОВЫЙ метод сервиса, передавая весь DTO
+        userService.registerUser(request);
+        return ResponseEntity.ok().body("Пользователь успешно создан");
     }
 }
 

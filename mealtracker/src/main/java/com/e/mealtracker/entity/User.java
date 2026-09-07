@@ -26,5 +26,8 @@ public class User {
     // Можно добавить role, если планируешь админку
     @Enumerated(EnumType.STRING)
     private Role role = Role.USER;
+
+    @Column(unique = true, nullable = true) // nullable=true пока, чтобы старые записи не ломались
+    private String email;
 }
 

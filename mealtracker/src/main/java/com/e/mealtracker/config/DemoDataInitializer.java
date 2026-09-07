@@ -25,6 +25,7 @@ public class DemoDataInitializer implements CommandLineRunner {
             // Хешируем пароль "banana19"
             user.setPassword(passwordEncoder.encode("banana19"));
             user.setRole(Role.USER);
+            user.setEmail("torgor_8@mail.ru");
             userRepository.save(user);
         }
     }
