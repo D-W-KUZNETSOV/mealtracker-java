@@ -29,5 +29,16 @@ public class User {
 
     @Column(unique = true, nullable = true) // nullable=true пока, чтобы старые записи не ломались
     private String email;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private UserProfile profile;
+
+    public void setProfile(UserProfile profile) {
+        this.profile = profile;
+        if (profile != null) {
+            profile.setUser(this);
+        }
+    }
+
 }
 
