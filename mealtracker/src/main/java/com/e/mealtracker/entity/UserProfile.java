@@ -24,6 +24,7 @@ public class UserProfile {
 
     private Integer heightCm;
     private BigDecimal targetWeightKg;
+    private BigDecimal currentWeightKg;
     private String gender; // MALE, FEMALE
     private String activityLevel; // LOW, MODERATE, HIGH
     private LocalDate dateOfBirth;

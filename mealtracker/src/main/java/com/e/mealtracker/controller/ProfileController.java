@@ -30,11 +30,9 @@ public class ProfileController {
         User user = userService.findByUsername(userDetails.getUsername());
         UserProfile profile = user.getProfile();
 
-        // Для MVP можно временно хардкодить текущий вес или брать из отдельного сервиса весов
-        BigDecimal currentWeight = new BigDecimal("81.0"); // замени на реальную логику
-
-        BigDecimal calories = nutritionCalculationService.calculateDailyCalories(profile, currentWeight);
+        BigDecimal calories = nutritionCalculationService.calculateDailyCalories(profile);
         return ResponseEntity.ok(calories);
     }
+
 }
 

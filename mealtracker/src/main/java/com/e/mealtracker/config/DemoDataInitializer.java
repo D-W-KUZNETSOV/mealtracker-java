@@ -32,22 +32,27 @@ public class DemoDataInitializer implements CommandLineRunner {
             UserProfile profile = new UserProfile();
             profile.setHeightCm(178);
             profile.setTargetWeightKg(new BigDecimal("75.0"));
+            profile.setCurrentWeightKg(new BigDecimal("81.0")); // <-- текущий вес
             profile.setGender("MALE");
             profile.setActivityLevel("MODERATE");
             profile.setDateOfBirth(LocalDate.of(1995, 5, 20));
 
-            dmitriy.setProfile(profile); // если в User есть связь
+            dmitriy.setProfile(profile);
             userRepository.save(dmitriy);
+            return;
         } else {
+            // Для существующих пользователей без профиля — создаём пустой профиль
             userRepository.findAll().forEach(u -> {
                 if (u.getProfile() == null) {
                     UserProfile p = new UserProfile();
-                    // только базовые значения, без хардкода личных данных
+                    p.setGender("MALE");
+                    p.setActivityLevel("MODERATE");
                     u.setProfile(p);
                     userRepository.save(u);
                 }
             });
         }
+
     }
 }
 
