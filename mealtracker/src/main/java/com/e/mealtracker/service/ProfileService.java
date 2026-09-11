@@ -5,6 +5,7 @@ import com.e.mealtracker.dto.UserProfileUpdateDto;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.entity.UserProfile;
 import com.e.mealtracker.repository.UserRepository;
+import com.e.mealtracker.util.AgeCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -67,11 +68,8 @@ public class ProfileService {
         dto.setGender(profile.getGender());
         dto.setActivityLevel(profile.getActivityLevel());
 
-        // Возраст
-        if (profile.getDateOfBirth() != null) {
-            int age = java.time.Period.between(profile.getDateOfBirth(), java.time.LocalDate.now()).getYears();
-            dto.setAgeYears(age);
-        }
+        // Возраст через утилиту
+        dto.setAgeYears(AgeCalculator.calculateAge(profile.getDateOfBirth()));
 
         // ИМТ: вес (кг) / (рост (м) ^ 2)
         if (profile.getCurrentWeightKg() != null && profile.getHeightCm() != null) {

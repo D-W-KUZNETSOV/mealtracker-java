@@ -61,6 +61,12 @@ public class GlobalExceptionHandler {
         ApiError error = new ApiError("INTERNAL_SERVER_ERROR", "Произошла непредвиденная ошибка на сервере", Instant.now());
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
+        ApiError error = new ApiError("BAD_REQUEST", ex.getMessage(), Instant.now());
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
 }
 
 

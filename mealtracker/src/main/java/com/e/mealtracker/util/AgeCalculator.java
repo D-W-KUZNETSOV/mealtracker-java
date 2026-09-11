@@ -4,10 +4,11 @@ import java.time.LocalDate;
 import java.time.Period;
 
 public class AgeCalculator {
-    public static int calculateAge(LocalDate birthDate) {
+    public static Integer calculateAge(LocalDate birthDate) {
         if (birthDate == null) {
-            return 0;
+            return null; // сразу видно: дата не задана
         }
         return Period.between(birthDate, LocalDate.now()).getYears();
     }
+
 }
