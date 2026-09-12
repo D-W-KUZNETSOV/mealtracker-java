@@ -5,13 +5,13 @@ import com.e.mealtracker.dto.CreateIngredientRequest;
 import com.e.mealtracker.dto.IngredientDto;
 import com.e.mealtracker.dto.IngredientResponseDto;
 import com.e.mealtracker.dto.IngredientUpdateDTO;
+import com.e.mealtracker.repository.IngredientRepository;
 import com.e.mealtracker.service.IngredientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,13 +27,14 @@ import java.util.List;
 public class IngredientController {
 
     private final IngredientService ingredientService;
+    private final IngredientRepository ingredientRepository;
 
     @PostMapping
     public IngredientDto createIngredient(
             @Valid @RequestBody CreateIngredientRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         Ingredient ingredient = ingredientService.saveIngredient(request, userDetails.getUsername());
-        return ingredientToDto(ingredient);
+        return toDto(ingredient);
     }
 
     @GetMapping
@@ -42,7 +43,30 @@ public class IngredientController {
             @AuthenticationPrincipal UserDetails userDetails) {
         return ingredientService.findAllByUsername(userDetails.getUsername())
                 .stream()
-                .map(this::ingredientToDto)
+                .map(this::toDto)
+                .toList();
+    }
+
+    @GetMapping("/base")
+    @Operation(summary = "Получить базовые (общие) ингредиенты")
+    public List<IngredientDto> getBaseIngredients() {
+        return ingredientRepository.findAllByUsernameIsNull().stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    @GetMapping("/base/search")
+    @Operation(summary = "Поиск базовых ингредиентов по имени")
+    public List<IngredientDto> searchBaseIngredients(
+            @RequestParam(required = false) String query) {
+        List<Ingredient> list;
+        if (query == null || query.isBlank()) {
+            list = ingredientRepository.findAllByUsernameIsNull();
+        } else {
+            list = ingredientRepository.findByNameIgnoreCaseContainingAndUsernameIsNull(query);
+        }
+        return list.stream()
+                .map(this::toDto)
                 .toList();
     }
 
@@ -68,16 +92,18 @@ public class IngredientController {
         return ResponseEntity.ok(updated);
     }
 
-    private IngredientDto ingredientToDto(Ingredient ingredient) {
+    private IngredientDto toDto(Ingredient ingredient) {
         return IngredientDto.builder()
                 .id(ingredient.getId())
                 .name(ingredient.getName())
                 .caloriesPer100g(ingredient.getCaloriesPer100g())
-                .proteinsPer100g(ingredient.getProteinsPer100g()) // если есть в DTO
-                .fatsPer100g(ingredient.getFatsPer100g())         // если есть в DTO
-                .carbsPer100g(ingredient.getCarbsPer100g())       // если есть в DTO
+                .fatsPer100g(ingredient.getFatsPer100g())
+                .proteinsPer100g(ingredient.getProteinsPer100g())
+                .carbsPer100g(ingredient.getCarbsPer100g())
                 .build();
     }
-
 }
+
+
+
 

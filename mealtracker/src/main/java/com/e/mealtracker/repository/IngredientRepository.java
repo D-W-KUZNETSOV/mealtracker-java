@@ -29,6 +29,9 @@ public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
 
     Optional<Ingredient> findByNameIgnoreCaseAndUsernameIsNull(String name);
 
+    List<Ingredient> findAllByUsernameIsNull();
 
+    // Если нужно искать по имени (частично)
+    List<Ingredient> findByNameIgnoreCaseContainingAndUsernameIsNull(String name);
 }
 
