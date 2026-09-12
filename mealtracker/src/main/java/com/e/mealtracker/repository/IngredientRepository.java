@@ -21,10 +21,14 @@ public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
     boolean existsByIdAndUsername(Long id, String username);
 
     Optional<Ingredient> findByIdAndUsername(Long id, String username);
+
     Page<Ingredient> findByUsername(String username, Pageable pageable);
 
     @Query("SELECT i FROM Ingredient i WHERE i.username = :username OR i.username IS NULL")
     List<Ingredient> findAllForUser(@Param("username") String username);
+
+    Optional<Ingredient> findByNameIgnoreCaseAndUsernameIsNull(String name);
+
 
 }
 
