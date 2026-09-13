@@ -25,7 +25,6 @@ public class Recipe {
     @Column(nullable = false)
     private String name;
 
-    // Связь с пользователем вместо хранения username как строки
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -40,6 +39,10 @@ public class Recipe {
     @Column(name = "image_url", length = 512)
     private String imageUrl;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "visibility", nullable = false)
+    private RecipeVisibility visibility = RecipeVisibility.PRIVATE;
+
     @Column(columnDefinition = "DECIMAL(10,2)", precision = 10, scale = 2)
     private BigDecimal totalCalories;
 
@@ -52,18 +55,23 @@ public class Recipe {
     @Column(columnDefinition = "DECIMAL(10,2)", precision = 10, scale = 2)
     private BigDecimal totalCarbs;
 
-    // Расчётные поля — не сохраняются в БД
-    @Transient
-    private BigDecimal caloriesPer100g;
-    @Transient
-    private BigDecimal proteinPer100g;
-    @Transient
-    private BigDecimal fatPer100g;
-    @Transient
-    private BigDecimal carbsPer100g;
+    // ✅ Теперь сохраняются в БД, а не @Transient
+    @Column(name = "calories_per_100g", precision = 10, scale = 2)
+    private BigDecimal caloriesPer100g = BigDecimal.ZERO;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "recipe")
+    @Column(name = "protein_per_100g", precision = 10, scale = 2)
+    private BigDecimal proteinPer100g = BigDecimal.ZERO;
+
+    @Column(name = "fat_per_100g", precision = 10, scale = 2)
+    private BigDecimal fatPer100g = BigDecimal.ZERO;
+
+    @Column(name = "carbs_per_100g", precision = 10, scale = 2)
+    private BigDecimal carbsPer100g = BigDecimal.ZERO;
+
+    @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecipeIngredient> ingredients = new ArrayList<>();
+
+    // --- методы расчёта суммарных КБЖУ остаются ---
 
     public BigDecimal calculateTotalCalories() {
         BigDecimal total = BigDecimal.ZERO;
@@ -122,6 +130,5 @@ public class Recipe {
         return total.setScale(2, RoundingMode.HALF_UP);
     }
 }
-
 
 

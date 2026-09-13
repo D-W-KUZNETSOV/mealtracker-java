@@ -3,8 +3,10 @@ package com.e.mealtracker.config;
 import com.e.mealtracker.domain.Ingredient;
 import com.e.mealtracker.domain.Recipe;
 import com.e.mealtracker.domain.RecipeIngredient;
+import com.e.mealtracker.domain.RecipeVisibility;
 import com.e.mealtracker.entity.Role;
 import com.e.mealtracker.entity.User;
+import com.e.mealtracker.entity.UserProfile;
 import com.e.mealtracker.repository.*;
 import com.e.mealtracker.service.UserContextService;
 import lombok.RequiredArgsConstructor;
@@ -12,9 +14,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Optional;
 
 @Slf4j
@@ -29,6 +34,7 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final Environment env;
     private final UserContextService userContextService;
+    private final PasswordEncoder passwordEncoder;
 
     private static final String DEFAULT_DEMO_USER = "dmitriy";
 
@@ -55,8 +61,19 @@ public class DataInitializer implements CommandLineRunner {
                     log.warn("User '{}' not found. Creating demo user.", finalUsername);
                     User newUser = new User();
                     newUser.setUsername(finalUsername);
-                    newUser.setPassword("$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy");
+                    newUser.setPassword(passwordEncoder.encode("banana19"));
                     newUser.setRole(Role.USER);
+                    newUser.setEmail("torgor_8@mail.ru");
+
+                    UserProfile profile = new UserProfile();
+                    profile.setHeightCm(178);
+                    profile.setTargetWeightKg(new BigDecimal("75.0"));
+                    profile.setCurrentWeightKg(new BigDecimal("81.0"));
+                    profile.setGender("MALE");
+                    profile.setActivityLevel("MODERATE");
+                    profile.setDateOfBirth(LocalDate.of(1995, 5, 20));
+
+                    newUser.setProfile(profile);
                     return userRepository.save(newUser);
                 });
 
@@ -72,6 +89,7 @@ public class DataInitializer implements CommandLineRunner {
                     Recipe newRecipe = new Recipe();
                     newRecipe.setName(recipeName);
                     newRecipe.setUser(user);
+                    newRecipe.setVisibility(RecipeVisibility.PUBLIC);
                     log.info("Creating new recipe: {}", recipeName);
                     return recipeRepository.save(newRecipe);
                 });

@@ -1,9 +1,6 @@
 package com.e.mealtracker.controller;
 
-import com.e.mealtracker.dto.ApiResponse;
-import com.e.mealtracker.dto.CreateRecipeRequest;
-import com.e.mealtracker.dto.RecipeDto;
-import com.e.mealtracker.dto.RecipeSummaryDto;
+import com.e.mealtracker.dto.*;
 import com.e.mealtracker.exception.RecipeNotFoundException;
 import com.e.mealtracker.service.RecipeNutritionService;
 import com.e.mealtracker.service.RecipeService;
@@ -15,11 +12,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -92,5 +91,19 @@ public class RecipeController {
         body.put("error", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
+
+    @GetMapping("/public")
+    public ResponseEntity<List<RecipeResponse>> getPublicRecipes() {
+        var recipes = recipeService.getPublicRecipes();
+        return ResponseEntity.ok(recipes);
+    }
+    @PatchMapping("/{id}/visibility")
+    public ResponseEntity<RecipeResponse> toggleVisibility(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(recipeService.toggleRecipeVisibility(id, userDetails.getUsername()));
+    }
+
+
 }
 
