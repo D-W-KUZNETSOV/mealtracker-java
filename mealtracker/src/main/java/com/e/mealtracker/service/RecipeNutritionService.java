@@ -25,10 +25,6 @@ public class RecipeNutritionService {
                         "Рецепт с ID " + recipeId + " не найден"));
 
         List<IngredientItemDto> items = new ArrayList<>();
-        double totalCalories = 0;
-        double totalFats = 0;
-        double totalProteins = 0;
-        double totalCarbs = 0;
 
         for (RecipeIngredient ri : recipe.getIngredients()) {
             var ing = ri.getIngredient();
@@ -42,8 +38,6 @@ public class RecipeNutritionService {
             double protPer100 = safe(ing.getProteinsPer100g());
             double carbsPer100 = safe(ing.getCarbsPer100g());
 
-            double itemCalories = calsPer100 * factor;
-
             IngredientItemDto item = new IngredientItemDto();
             item.setName(ing.getName());
             item.setQuantityGrams(weight);
@@ -51,22 +45,19 @@ public class RecipeNutritionService {
             item.setFatsPer100g(fatsPer100);
             item.setProteinsPer100g(protPer100);
             item.setCarbsPer100g(carbsPer100);
-            item.setItemCalories(itemCalories);
+            item.setItemCalories(calsPer100 * factor);
             items.add(item);
-
-            totalCalories += itemCalories;
-            totalFats += fatsPer100 * factor;
-            totalProteins += protPer100 * factor;
-            totalCarbs += carbsPer100 * factor;
         }
 
         RecipeSummaryDto dto = new RecipeSummaryDto();
         dto.setName(recipe.getName());
+        dto.setDescription(recipe.getDescription());
+        dto.setImageUrl(recipe.getImageUrl());
         dto.setIngredients(items);
-        dto.setTotalCalories(totalCalories);
-        dto.setTotalFats(totalFats);
-        dto.setTotalProteins(totalProteins);
-        dto.setTotalCarbs(totalCarbs);
+        dto.setTotalCalories(recipe.getTotalCalories());
+        dto.setTotalFats(recipe.getTotalFats());
+        dto.setTotalProteins(recipe.getTotalProteins());
+        dto.setTotalCarbs(recipe.getTotalCarbs());
         return dto;
     }
 

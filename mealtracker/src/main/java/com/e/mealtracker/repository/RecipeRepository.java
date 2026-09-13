@@ -1,6 +1,6 @@
 package com.e.mealtracker.repository;
 
-import com.e.mealtracker.domain.DailyLog;
+
 import com.e.mealtracker.domain.MealType;
 import com.e.mealtracker.domain.Recipe;
 import org.springframework.data.domain.Page;
@@ -16,6 +16,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
     // Базовые методы для изоляции по пользователю (самое важное для продакшена)
     List<Recipe> findByUsername(String username);
+
     Page<Recipe> findByUsername(String username, Pageable pageable);
 
     // Фильтрация по пользователю + категория (удобно для фильтров в UI)
@@ -27,8 +28,10 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     // Поиск по имени с привязкой к пользователю (чтобы пользователь видел только свои рецепты с таким именем)
     Optional<Recipe> findByNameAndUsername(String name, String username);
 
+
     // Публичные/админские методы (оставляем, но используем осторожно)
     List<Recipe> findByCategory(MealType category);
+
     Optional<Recipe> findByName(String name);
 
 }

@@ -16,3 +16,4 @@ public enum MealType {
         return displayName;
     }
 }
+

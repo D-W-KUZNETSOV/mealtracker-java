@@ -1,6 +1,8 @@
 package com.e.mealtracker.exception;
 
 import com.e.mealtracker.dto.ApiError;
+import com.e.mealtracker.dto.ErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -50,6 +52,17 @@ public class GlobalExceptionHandler {
         ApiError apiError = new ApiError("VALIDATION_ERROR", messages.toString(), Instant.now());
         return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
     }
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex, HttpServletRequest request) {
+        ErrorResponse response = new ErrorResponse(
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
 
     // Глобальный "страховочный" хендлер для любых непредвиденных ошибок
     @ExceptionHandler(Exception.class)

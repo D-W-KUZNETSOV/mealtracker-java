@@ -96,7 +96,7 @@ public class IngredientController {
         return IngredientDto.builder()
                 .id(ingredient.getId())
                 .name(ingredient.getName())
-                .caloriesPer100g(ingredient.getCaloriesPer100g())
+                .caloriesPer100g(ingredient.calculateCaloriesPer100g())
                 .fatsPer100g(ingredient.getFatsPer100g())
                 .proteinsPer100g(ingredient.getProteinsPer100g())
                 .carbsPer100g(ingredient.getCarbsPer100g())

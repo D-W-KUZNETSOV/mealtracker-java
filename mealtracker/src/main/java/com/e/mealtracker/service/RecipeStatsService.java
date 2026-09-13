@@ -33,7 +33,7 @@ public class RecipeStatsService {
             double weightInGrams = link.getWeightInGrams();
 
             // КБЖУ на 100 г
-            double calsPer100 = ing.getCaloriesPer100g();
+            double calsPer100 = ing.calculateCaloriesPer100g();
             double proPer100 = ing.getProteinsPer100g();
             double fatPer100 = ing.getFatsPer100g();
             double carbPer100 = ing.getCarbsPer100g();

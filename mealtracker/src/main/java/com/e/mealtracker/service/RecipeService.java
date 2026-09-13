@@ -8,7 +8,6 @@ import com.e.mealtracker.domain.RecipeIngredient;
 import com.e.mealtracker.dto.CreateRecipeRequest;
 import com.e.mealtracker.dto.IngredientWeightDto;
 import com.e.mealtracker.dto.RecipeDto;
-import com.e.mealtracker.dto.RecipeIngredientDto;
 import com.e.mealtracker.repository.IngredientRepository;
 import com.e.mealtracker.repository.RecipeIngredientRepository;
 import com.e.mealtracker.repository.RecipeRepository;
@@ -16,7 +15,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -32,6 +34,8 @@ public class RecipeService {
         Recipe recipe = new Recipe();
         recipe.setName(request.getName());
         recipe.setUsername(username);
+        recipe.setDescription(request.getDescription());
+        recipe.setImageUrl(request.getImageUrl());
 
         // Обработка категории
         if (request.getCategory() != null && !request.getCategory().isBlank()) {
@@ -46,35 +50,26 @@ public class RecipeService {
             recipe.setCategory(null);
         }
 
-        List<String> missingIngredients = new ArrayList<>();
+        // Проверяем все ингредиенты до сохранения рецепта
+        List<Long> missingIds = new ArrayList<>();
         List<String> missingNutritionalData = new ArrayList<>();
-        Map<String, Ingredient> ingredientMap = new HashMap<>();
 
-        // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: ищем ингредиенты только текущего пользователя
         for (IngredientWeightDto input : request.getIngredients()) {
-            String name = input.getIngredientName();
-            Optional<Ingredient> optional = ingredientRepository
-                    .findByNameIgnoreCaseAndUsername(name, username);
+            Ingredient ingredient = ingredientRepository.findById(input.getIngredientId())
+                    .orElse(null);
 
-            if (optional.isEmpty()) {
-                missingIngredients.add(name);
-            } else {
-                Ingredient ingredient = optional.get();
-                ingredientMap.put(name, ingredient);
-
-                if (ingredient.getCaloriesPer100g() == null
-                        || ingredient.getProteinsPer100g() == null
-                        || ingredient.getFatsPer100g() == null
-                        || ingredient.getCarbsPer100g() == null) {
-                    missingNutritionalData.add(ingredient.getName());
-                }
+            if (ingredient == null) {
+                missingIds.add(input.getIngredientId());
+            } else if (ingredient.getProteinsPer100g() == null
+                    || ingredient.getFatsPer100g() == null
+                    || ingredient.getCarbsPer100g() == null) {
+                missingNutritionalData.add(ingredient.getName());
             }
         }
 
-        if (!missingIngredients.isEmpty()) {
+        if (!missingIds.isEmpty()) {
             throw new IllegalArgumentException(
-                    "Следующие ингредиенты не найдены в базе. Сначала добавьте их: " +
-                            String.join(", ", missingIngredients)
+                    "Ингредиенты с ID не найдены: " + missingIds
             );
         }
 
@@ -85,16 +80,53 @@ public class RecipeService {
             );
         }
 
-        recipe = recipeRepository.save(recipe);
+        // Считаем КБЖУ в BigDecimal
+        BigDecimal totalCalories = BigDecimal.ZERO;
+        BigDecimal totalProteins = BigDecimal.ZERO;
+        BigDecimal totalFats = BigDecimal.ZERO;
+        BigDecimal totalCarbs = BigDecimal.ZERO;
 
         for (IngredientWeightDto input : request.getIngredients()) {
-            Ingredient ingredient = ingredientMap.get(input.getIngredientName());
+            Ingredient ingredient = ingredientRepository.findById(input.getIngredientId())
+                    .orElseThrow(() -> new IllegalArgumentException("Ингредиент не найден"));
+
+            BigDecimal weight = BigDecimal.valueOf(input.getWeightInGrams());
+            BigDecimal ratio = weight.divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
+
+            // Калории — через метод (считаются из БЖУ)
+            BigDecimal calsPer100 = BigDecimal.valueOf(ingredient.calculateCaloriesPer100g());
+            totalCalories = totalCalories.add(calsPer100.multiply(ratio));
+
+            // Белки, жиры, углеводы — напрямую из полей
+            totalProteins = totalProteins.add(
+                    BigDecimal.valueOf(ingredient.getProteinsPer100g()).multiply(ratio)
+            );
+            totalFats = totalFats.add(
+                    BigDecimal.valueOf(ingredient.getFatsPer100g()).multiply(ratio)
+            );
+            totalCarbs = totalCarbs.add(
+                    BigDecimal.valueOf(ingredient.getCarbsPer100g()).multiply(ratio)
+            );
+        }
+
+        // Округляем до 2 знаков
+        recipe.setTotalCalories(totalCalories.setScale(2, RoundingMode.HALF_UP));
+        recipe.setTotalProteins(totalProteins.setScale(2, RoundingMode.HALF_UP));
+        recipe.setTotalFats(totalFats.setScale(2, RoundingMode.HALF_UP));
+        recipe.setTotalCarbs(totalCarbs.setScale(2, RoundingMode.HALF_UP));
+
+        // Сохраняем рецепт
+        recipe = recipeRepository.save(recipe);
+
+        // Создаём RecipeIngredient и привязываем к рецепту
+        for (IngredientWeightDto input : request.getIngredients()) {
+            Ingredient ingredient = ingredientRepository.findById(input.getIngredientId())
+                    .orElseThrow(() -> new IllegalArgumentException("Ингредиент не найден"));
 
             RecipeIngredient ri = new RecipeIngredient();
             ri.setWeightInGrams(input.getWeightInGrams());
             ri.setIngredient(ingredient);
             ri.setRecipe(recipe);
-
             recipeIngredientRepository.save(ri);
             recipe.getIngredients().add(ri);
         }
@@ -127,7 +159,8 @@ public class RecipeService {
                 ));
         recipeRepository.delete(recipe);
     }
-
-
 }
+
+
+
 

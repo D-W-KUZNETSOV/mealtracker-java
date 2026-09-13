@@ -4,6 +4,7 @@ import com.e.mealtracker.dto.UserProfileDto;
 import com.e.mealtracker.dto.UserProfileUpdateDto;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.entity.UserProfile;
+import com.e.mealtracker.exception.NotFoundException;
 import com.e.mealtracker.repository.UserRepository;
 import com.e.mealtracker.util.AgeCalculator;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,7 @@ public class ProfileService {
     @Transactional
     public void updateProfile(String username, UserProfileUpdateDto dto) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+                .orElseThrow(() -> new NotFoundException("User not found: " + username));
 
         UserProfile profile = user.getProfile();
 
@@ -32,6 +33,10 @@ public class ProfileService {
             profile.setUser(user);
             user.setProfile(profile);
         }
+        if (dto.getDateOfBirth() != null) {
+            profile.setDateOfBirth(dto.getDateOfBirth());
+        }
+
 
         if (dto.getHeightCm() != null) {
             profile.setHeightCm(dto.getHeightCm());
@@ -48,17 +53,21 @@ public class ProfileService {
         if (dto.getActivityLevel() != null) {
             profile.setActivityLevel(dto.getActivityLevel());
         }
+        if (profile.getActivityLevel() == null) {
+            profile.setActivityLevel("MODERATE");
 
+        }
         userRepository.save(user);
     }
+
     @Transactional(readOnly = true)
     public UserProfileDto getProfile(String username) {
         var user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+                .orElseThrow(() -> new NotFoundException("User not found: " + username));
 
         var profile = user.getProfile();
         if (profile == null) {
-            return new UserProfileDto(); // или кинуть ошибку, если профиль обязателен
+            throw new NotFoundException("Profile not found for user: " + username);
         }
 
         UserProfileDto dto = new UserProfileDto();
@@ -68,18 +77,25 @@ public class ProfileService {
         dto.setGender(profile.getGender());
         dto.setActivityLevel(profile.getActivityLevel());
 
-        // Возраст через утилиту
-        dto.setAgeYears(AgeCalculator.calculateAge(profile.getDateOfBirth()));
+        // Возраст
+        if (profile.getDateOfBirth() != null) {
+            dto.setAgeYears(AgeCalculator.calculateAge(profile.getDateOfBirth()));
+        } else {
+            dto.setAgeYears(null);
+        }
 
-        // ИМТ: вес (кг) / (рост (м) ^ 2)
+        // ИМТ
         if (profile.getCurrentWeightKg() != null && profile.getHeightCm() != null) {
             BigDecimal heightM = new BigDecimal(profile.getHeightCm()).divide(new BigDecimal(100));
             BigDecimal bmi = profile.getCurrentWeightKg().divide(heightM.pow(2), java.math.MathContext.DECIMAL32);
             dto.setBmi(bmi);
+        } else {
+            dto.setBmi(null);
         }
 
         return dto;
     }
+
 
 }
 

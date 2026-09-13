@@ -33,5 +33,7 @@ public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
 
     // Если нужно искать по имени (частично)
     List<Ingredient> findByNameIgnoreCaseContainingAndUsernameIsNull(String name);
+
+
 }
 

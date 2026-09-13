@@ -79,17 +79,17 @@ public class StatsService {
                 for (RecipeIngredient ri : recipe.getIngredients()) {
                     Ingredient ing = ri.getIngredient();
 
-                    if (ing.getCaloriesPer100g() == null
-                            || ing.getProteinsPer100g() == null
+                    if (ing.getProteinsPer100g() == null
                             || ing.getFatsPer100g() == null
                             || ing.getCarbsPer100g() == null) {
                         throw new IncompleteIngredientDataException(
-                                "У ингредиента '" + ing.getName() + "' неполные данные КБЖУ.");
+                                "У ингредиента '" + ing.getName() + "' неполные данные КБЖУ (не хватает белков/жиров/углеводов).");
                     }
+
 
                     double weightInPortion = (ri.getWeightInGrams() / totalRecipeWeight) * portionWeight;
 
-                    totalCalories += ing.getCaloriesPer100g() * (weightInPortion / 100.0);
+                    totalCalories += ing.calculateCaloriesPer100g() * (weightInPortion / 100.0);
                     totalProteins += ing.getProteinsPer100g() * (weightInPortion / 100.0);
                     totalFats += ing.getFatsPer100g() * (weightInPortion / 100.0);
                     totalCarbs += ing.getCarbsPer100g() * (weightInPortion / 100.0);
