@@ -39,7 +39,6 @@ public class StatsService {
     public DailyStatsDto addPortionAndReturnTodayStats(RecipePortionRequest portion, User user) {
         LocalDate today = LocalDate.now();
 
-        // 1. Получаем или создаём лог на день
         DailyLog log = dailyLogRepository.findByUserAndLogDate(user, today)
                 .orElseGet(() -> {
                     DailyLog newLog = new DailyLog();
@@ -48,34 +47,61 @@ public class StatsService {
                     return dailyLogRepository.save(newLog);
                 });
 
-        // 2. Получаем рецепт. Если нужна проверка прав — делай её здесь.
         Recipe recipe = recipeRepository.findById(portion.getRecipeId())
-                .orElseThrow(() -> new RecipeNotFoundException(
-                        "Рецепт с ID " + portion.getRecipeId() + " не найден"));
+                .orElseThrow(() -> new RecipeNotFoundException("Рецепт с ID " + portion.getRecipeId() + " не найден"));
 
         if (portion.getWeightInGrams() <= 0) {
             throw new InvalidPortionWeightException(portion.getWeightInGrams());
         }
 
-        // 3. Считаем КБЖУ для порции
+        // Считаем per-100g из totalCalories и общего веса ингредиентов
+        BigDecimal totalWeight = BigDecimal.valueOf(recipe.getIngredients().stream()
+                .mapToDouble(ri -> ri.getWeightInGrams())
+                .sum());
+
+        BigDecimal caloriesPer100g;
+        BigDecimal proteinPer100g;
+        BigDecimal fatPer100g;
+        BigDecimal carbsPer100g;
+
+        if (totalWeight.compareTo(BigDecimal.ZERO) > 0) {
+            caloriesPer100g = recipe.getTotalCalories()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(totalWeight, MathContext.DECIMAL32);
+            proteinPer100g = recipe.getTotalProteins()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(totalWeight, MathContext.DECIMAL32);
+            fatPer100g = recipe.getTotalFats()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(totalWeight, MathContext.DECIMAL32);
+            carbsPer100g = recipe.getTotalCarbs()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(totalWeight, MathContext.DECIMAL32);
+        } else {
+            // Если веса ингредиентов нет (редкий кейс), можно поставить 0 или кинуть исключение
+            caloriesPer100g = BigDecimal.ZERO;
+            proteinPer100g = BigDecimal.ZERO;
+            fatPer100g = BigDecimal.ZERO;
+            carbsPer100g = BigDecimal.ZERO;
+        }
+
         BigDecimal weight = BigDecimal.valueOf(portion.getWeightInGrams());
         BigDecimal factor = weight.divide(BigDecimal.valueOf(100), MathContext.DECIMAL32);
 
-        BigDecimal calories = recipe.getCaloriesPer100g().multiply(factor);
-        BigDecimal protein = recipe.getProteinPer100g().multiply(factor);
-        BigDecimal fat = recipe.getFatPer100g().multiply(factor);
-        BigDecimal carbs = recipe.getCarbsPer100g().multiply(factor);
+        BigDecimal calories = caloriesPer100g.multiply(factor);
+        BigDecimal protein = proteinPer100g.multiply(factor);
+        BigDecimal fat = fatPer100g.multiply(factor);
+        BigDecimal carbs = carbsPer100g.multiply(factor);
 
-        // 4. Создаём FoodEntry
         FoodEntry entry = new FoodEntry();
         entry.setDailyLog(log);
         entry.setRecipe(recipe);
         entry.setWeightInGrams(portion.getWeightInGrams());
 
-        entry.setCaloriesPer100g(recipe.getCaloriesPer100g());
-        entry.setProteinPer100g(recipe.getProteinPer100g());
-        entry.setFatPer100g(recipe.getFatPer100g());
-        entry.setCarbsPer100g(recipe.getCarbsPer100g());
+        entry.setCaloriesPer100g(caloriesPer100g);
+        entry.setProteinPer100g(proteinPer100g);
+        entry.setFatPer100g(fatPer100g);
+        entry.setCarbsPer100g(carbsPer100g);
 
         entry.setCalories(calories);
         entry.setProtein(protein);
@@ -84,11 +110,11 @@ public class StatsService {
 
         foodEntryRepository.save(entry);
 
-        // 5. Пересчитываем итоги дня
         recalculateDailyTotals(log);
 
         return calculateStatsForDate(today, user);
     }
+
 
     public DailyStatsDto getTodayStats(User user) {
         return calculateStatsForDate(LocalDate.now(), user);
