@@ -90,6 +90,10 @@ public class NutritionCalculationService {
             log.warn("Профиль пользователя отсутствует");
             return BigDecimal.ZERO;
         }
+        if (profile.getActivityLevel() == null) {
+            throw new IllegalStateException("Activity level is not set for user profile");
+        }
+
 
         BigDecimal currentWeight = profile.getCurrentWeightKg();
         if (currentWeight == null || currentWeight.compareTo(BigDecimal.ZERO) <= 0) {

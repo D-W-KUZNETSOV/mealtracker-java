@@ -18,6 +18,8 @@ public class UserProfile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+
+
     @OneToOne
     @JoinColumn(name = "user_id")
     private User user;
@@ -26,7 +28,9 @@ public class UserProfile {
     private BigDecimal targetWeightKg;
     private BigDecimal currentWeightKg;
     private String gender; // MALE, FEMALE
-    private String activityLevel; // LOW, MODERATE, HIGH
+    private String activityLevel = "MODERATE";// LOW, MODERATE, HIGH
     private LocalDate dateOfBirth;
+
+
 }
 

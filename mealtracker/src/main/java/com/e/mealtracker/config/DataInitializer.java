@@ -10,6 +10,7 @@ import com.e.mealtracker.service.UserContextService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import java.util.Optional;
 
 @Slf4j
 @Component
+@Profile("local")
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
@@ -61,19 +63,19 @@ public class DataInitializer implements CommandLineRunner {
                 });
 
         // Ищем в общем справочнике (username = NULL)
-        Ingredient chicken = ingredientRepository
-                .findByNameIgnoreCaseAndUsernameIsNull("Куриная грудка")
-                .orElseThrow(() -> new IllegalStateException(
-                        "Ingredient 'Куриная грудка' not found in shared catalog"));
+        Optional<Ingredient> chickenOpt = ingredientRepository
+                .findByNameIgnoreCaseAndUsernameIsNull("Куриная грудка");
+        Optional<Ingredient> buckwheatOpt = ingredientRepository
+                .findByNameIgnoreCaseAndUsernameIsNull("Гречка варёная");
 
-        Ingredient buckwheat = ingredientRepository
-                .findByNameIgnoreCaseAndUsernameIsNull("Гречка варёная")
-                .orElseThrow(() -> new IllegalStateException(
-                        "Ingredient 'Гречка варёная' not found in shared catalog"));
+        if (chickenOpt.isEmpty() || buckwheatOpt.isEmpty()) {
+            log.warn("Required ingredients not found, skipping recipe creation. " +
+                    "Make sure ingredient catalog is initialized.");
+            return;
+        }
 
-
-        ensureRecipeIngredient(lunch, chicken, 200.0);
-        ensureRecipeIngredient(lunch, buckwheat, 150.0);
+        ensureRecipeIngredient(lunch, chickenOpt.get(), 200.0);
+        ensureRecipeIngredient(lunch, buckwheatOpt.get(), 150.0);
 
         log.info("Recipe '{}' has {} ingredients", recipeName,
                 recipeIngredientRepository.countByRecipe(lunch));

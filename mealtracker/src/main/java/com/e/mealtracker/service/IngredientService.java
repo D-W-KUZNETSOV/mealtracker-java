@@ -30,7 +30,6 @@ public class IngredientService {
     public Ingredient saveIngredient(CreateIngredientRequest request, String username) {
         return ingredientRepository.findByNameIgnoreCaseAndUsername(request.getName(), username)
                 .map(existing -> {
-                    existing.setCaloriesPer100g(request.getCaloriesPer100g());
                     existing.setProteinsPer100g(request.getProteinsPer100g());
                     existing.setFatsPer100g(request.getFatsPer100g());
                     existing.setCarbsPer100g(request.getCarbsPer100g());
@@ -40,7 +39,6 @@ public class IngredientService {
                     Ingredient newIngredient = new Ingredient();
                     newIngredient.setName(request.getName());
                     newIngredient.setUsername(username);
-                    newIngredient.setCaloriesPer100g(request.getCaloriesPer100g());
                     newIngredient.setProteinsPer100g(request.getProteinsPer100g());
                     newIngredient.setFatsPer100g(request.getFatsPer100g());
                     newIngredient.setCarbsPer100g(request.getCarbsPer100g());
@@ -73,7 +71,7 @@ public class IngredientService {
             ingredient.setCarbsPer100g(dto.getCarbsPer100g());
         }
 
-        ingredient.setCaloriesPer100g(ingredient.calculateCaloriesPer100g());
+
 
         Ingredient saved = ingredientRepository.save(ingredient);
         return toResponseDto(saved);
@@ -95,7 +93,7 @@ public class IngredientService {
         dto.setFatsPer100g(ingredient.getFatsPer100g());
         dto.setProteinsPer100g(ingredient.getProteinsPer100g());
         dto.setCarbsPer100g(ingredient.getCarbsPer100g());
-        dto.setCaloriesPer100g(ingredient.getCaloriesPer100g());
+        dto.setCaloriesPer100g(ingredient.calculateCaloriesPer100g());
         return dto;
     }
 }

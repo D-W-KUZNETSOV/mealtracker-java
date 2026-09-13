@@ -1,6 +1,6 @@
 package com.e.mealtracker.repository;
 
-import com.e.mealtracker.domain.Ingredient;
+
 import com.e.mealtracker.domain.UserGoals;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

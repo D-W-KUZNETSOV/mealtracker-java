@@ -3,6 +3,8 @@ package com.e.mealtracker.controller;
 import com.e.mealtracker.dto.ApiResponse;
 import com.e.mealtracker.dto.CreateRecipeRequest;
 import com.e.mealtracker.dto.RecipeDto;
+import com.e.mealtracker.dto.RecipeSummaryDto;
+import com.e.mealtracker.service.RecipeNutritionService;
 import com.e.mealtracker.service.RecipeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import java.util.Map;
 public class RecipeController {
 
     private final RecipeService recipeService;
+    private final RecipeNutritionService recipeNutritionService;
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
@@ -52,6 +55,11 @@ public class RecipeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
+    @GetMapping("/{id}/summary")
+    public ResponseEntity<RecipeSummaryDto> getRecipeSummary(@PathVariable Long id) {
+        return ResponseEntity.ok(recipeNutritionService.getRecipeSummary(id));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse> deleteRecipe(
             @PathVariable Long id,
@@ -62,13 +70,11 @@ public class RecipeController {
             recipeService.deleteRecipeByUser(id, username);
             return ResponseEntity.ok(new ApiResponse("success", "Рецепт успешно удалён"));
         } catch (IllegalArgumentException e) {
-            // Это и есть «не найден или не принадлежит пользователю»
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ApiResponse("error", e.getMessage()));
         }
     }
 
-    // Опционально: отдельный хендлер для бизнес-ошибок, если они могут быть в других местах
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
         log.warn("Бизнес-ошибка: {}", ex.getMessage());
