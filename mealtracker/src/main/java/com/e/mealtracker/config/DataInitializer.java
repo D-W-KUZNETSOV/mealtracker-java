@@ -3,9 +3,9 @@ package com.e.mealtracker.config;
 import com.e.mealtracker.domain.Ingredient;
 import com.e.mealtracker.domain.Recipe;
 import com.e.mealtracker.domain.RecipeIngredient;
-import com.e.mealtracker.repository.IngredientRepository;
-import com.e.mealtracker.repository.RecipeIngredientRepository;
-import com.e.mealtracker.repository.RecipeRepository;
+import com.e.mealtracker.entity.Role;
+import com.e.mealtracker.entity.User;
+import com.e.mealtracker.repository.*;
 import com.e.mealtracker.service.UserContextService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +26,7 @@ public class DataInitializer implements CommandLineRunner {
     private final IngredientRepository ingredientRepository;
     private final RecipeRepository recipeRepository;
     private final RecipeIngredientRepository recipeIngredientRepository;
+    private final UserRepository userRepository;
     private final Environment env;
     private final UserContextService userContextService;
 
@@ -40,37 +41,48 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        String currentUser = userContextService.getCurrentUsername();
-        if (currentUser == null) {
-            currentUser = DEFAULT_DEMO_USER;
+        String currentUsername = userContextService.getCurrentUsername();
+        if (currentUsername == null) {
+            currentUsername = DEFAULT_DEMO_USER;
         }
 
-        log.info("Starting demo data initialization for user: {}", currentUser);
-        createOrUpdateRecipe(currentUser);
-        log.info("Demo data initialization completed for user: {}", currentUser);
+        log.info("Starting demo data initialization for user: {}", currentUsername);
+
+        final String finalUsername = currentUsername;
+
+        User user = userRepository.findByUsername(finalUsername)
+                .orElseGet(() -> {
+                    log.warn("User '{}' not found. Creating demo user.", finalUsername);
+                    User newUser = new User();
+                    newUser.setUsername(finalUsername);
+                    newUser.setPassword("$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy");
+                    newUser.setRole(Role.USER);
+                    return userRepository.save(newUser);
+                });
+
+        createOrUpdateRecipe(user);
+        log.info("Demo data initialization completed for user: {}", user.getUsername());
     }
 
-    private void createOrUpdateRecipe(String username) {
+    private void createOrUpdateRecipe(User user) {
         String recipeName = "Обед: курица + гречка";
 
-        Recipe lunch = recipeRepository.findByNameAndUsername(recipeName, username)
+        Recipe lunch = recipeRepository.findByNameAndUser(recipeName, user)
                 .orElseGet(() -> {
                     Recipe newRecipe = new Recipe();
                     newRecipe.setName(recipeName);
-                    newRecipe.setUsername(username);
+                    newRecipe.setUser(user);
                     log.info("Creating new recipe: {}", recipeName);
                     return recipeRepository.save(newRecipe);
                 });
 
-        // Ищем в общем справочнике (username = NULL)
         Optional<Ingredient> chickenOpt = ingredientRepository
                 .findByNameIgnoreCaseAndUsernameIsNull("Куриная грудка");
         Optional<Ingredient> buckwheatOpt = ingredientRepository
                 .findByNameIgnoreCaseAndUsernameIsNull("Гречка варёная");
 
         if (chickenOpt.isEmpty() || buckwheatOpt.isEmpty()) {
-            log.warn("Required ingredients not found, skipping recipe creation. " +
-                    "Make sure ingredient catalog is initialized.");
+            log.warn("Required ingredients not found, skipping recipe creation.");
             return;
         }
 
@@ -97,4 +109,5 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 }
+
 

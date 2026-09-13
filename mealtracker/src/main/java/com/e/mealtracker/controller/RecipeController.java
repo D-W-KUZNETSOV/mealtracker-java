@@ -4,11 +4,14 @@ import com.e.mealtracker.dto.ApiResponse;
 import com.e.mealtracker.dto.CreateRecipeRequest;
 import com.e.mealtracker.dto.RecipeDto;
 import com.e.mealtracker.dto.RecipeSummaryDto;
+import com.e.mealtracker.exception.RecipeNotFoundException;
 import com.e.mealtracker.service.RecipeNutritionService;
 import com.e.mealtracker.service.RecipeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,7 +20,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -39,11 +41,15 @@ public class RecipeController {
     }
 
     @GetMapping
-    public List<RecipeDto> getAllRecipes(
+    public ResponseEntity<Page<RecipeDto>> getAllRecipes(
             @RequestParam(required = false) String category,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         String username = userDetails.getUsername();
-        return recipeService.getAllRecipesByUser(category, username);
+        Page<RecipeDto> recipes = recipeService.getAllRecipesByUser(category, username, PageRequest.of(page, size));
+        log.debug("Получен список рецептов: page={}, size={}, count={}, username={}", page, size, recipes.getTotalElements(), username);
+        return ResponseEntity.ok(recipes);
     }
 
     @PostMapping
@@ -52,12 +58,16 @@ public class RecipeController {
             @AuthenticationPrincipal UserDetails userDetails) {
         String username = userDetails.getUsername();
         RecipeDto saved = recipeService.saveRecipe(request, username);
+        log.info("Рецепт создан: id={}, username={}", saved.getId(), username);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @GetMapping("/{id}/summary")
-    public ResponseEntity<RecipeSummaryDto> getRecipeSummary(@PathVariable Long id) {
-        return ResponseEntity.ok(recipeNutritionService.getRecipeSummary(id));
+    public ResponseEntity<RecipeSummaryDto> getRecipeSummary(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        RecipeSummaryDto summary = recipeNutritionService.getRecipeSummary(id, userDetails.getUsername());
+        return ResponseEntity.ok(summary);
     }
 
     @DeleteMapping("/{id}")
@@ -65,9 +75,9 @@ public class RecipeController {
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
         String username = userDetails.getUsername();
-
         try {
             recipeService.deleteRecipeByUser(id, username);
+            log.info("Рецепт удалён: id={}, username={}", id, username);
             return ResponseEntity.ok(new ApiResponse("success", "Рецепт успешно удалён"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -75,13 +85,12 @@ public class RecipeController {
         }
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
-        log.warn("Бизнес-ошибка: {}", ex.getMessage());
+    @ExceptionHandler(RecipeNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleNotFound(RecipeNotFoundException ex) {
+        log.warn("Бизнес-ошибка (не найдено): {}", ex.getMessage());
         Map<String, String> body = new HashMap<>();
         body.put("error", ex.getMessage());
-        return ResponseEntity.badRequest().body(body);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 }
-
 

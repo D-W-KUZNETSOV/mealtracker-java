@@ -1,75 +1,42 @@
 package com.e.mealtracker.domain;
 
+import com.e.mealtracker.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
+@Table(name = "daily_logs")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "daily_logs")
 public class DailyLog {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "recipe_id", nullable = false)
-    private Recipe recipe;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @Column(name = "weight_in_grams", nullable = false)
-    private double weightInGrams;
+    @Column(name = "log_date", nullable = false)
+    private LocalDate logDate;
 
-    @Column(name = "date", nullable = false)
-    private LocalDate date;
+    @Column(precision = 10, scale = 2, nullable = false)
+    private BigDecimal calories = BigDecimal.ZERO;
 
-    // <-- Добавлено поле username
-    @Column(name = "username", nullable = false)
-    private String username;
+    @Column(precision = 10, scale = 2, nullable = false)
+    private BigDecimal protein = BigDecimal.ZERO;
 
-    public Long getId() {
-        return id;
-    }
+    @Column(precision = 10, scale = 2, nullable = false)
+    private BigDecimal fat = BigDecimal.ZERO;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Recipe getRecipe() {
-        return recipe;
-    }
-
-    public void setRecipe(Recipe recipe) {
-        this.recipe = recipe;
-    }
-
-    public double getWeightInGrams() {
-        return weightInGrams;
-    }
-
-    public void setWeightInGrams(double weightInGrams) {
-        this.weightInGrams = weightInGrams;
-    }
-
-    public LocalDate getDate() {
-        return date;
-    }
-
-    public void setDate(LocalDate date) {
-        this.date = date;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
+    @Column(precision = 10, scale = 2, nullable = false)
+    private BigDecimal carbs = BigDecimal.ZERO;
 }
+
 

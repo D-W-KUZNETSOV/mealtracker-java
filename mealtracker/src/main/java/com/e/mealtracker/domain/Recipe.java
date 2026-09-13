@@ -1,5 +1,6 @@
 package com.e.mealtracker.domain;
 
+import com.e.mealtracker.entity.User;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,14 +25,15 @@ public class Recipe {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "username", nullable = false)
-    private String username;
+    // Связь с пользователем вместо хранения username как строки
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private MealType category;
 
-    // Эти два поля мы добавляем, чтобы убрать красные строки
     @Column(length = 1000)
     private String description;
 
@@ -49,6 +51,16 @@ public class Recipe {
 
     @Column(columnDefinition = "DECIMAL(10,2)", precision = 10, scale = 2)
     private BigDecimal totalCarbs;
+
+    // Расчётные поля — не сохраняются в БД
+    @Transient
+    private BigDecimal caloriesPer100g;
+    @Transient
+    private BigDecimal proteinPer100g;
+    @Transient
+    private BigDecimal fatPer100g;
+    @Transient
+    private BigDecimal carbsPer100g;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "recipe")
     private List<RecipeIngredient> ingredients = new ArrayList<>();
@@ -110,5 +122,6 @@ public class Recipe {
         return total.setScale(2, RoundingMode.HALF_UP);
     }
 }
+
 
 
