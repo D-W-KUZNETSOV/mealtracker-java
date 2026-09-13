@@ -40,6 +40,10 @@ public class Recipe {
     @Column(name = "image_url", length = 512)
     private String imageUrl;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "visibility", nullable = false)
+    private RecipeVisibility visibility = RecipeVisibility.PRIVATE;
+
     @Column(columnDefinition = "DECIMAL(10,2)", precision = 10, scale = 2)
     private BigDecimal totalCalories;
 
@@ -62,8 +66,9 @@ public class Recipe {
     @Transient
     private BigDecimal carbsPer100g;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "recipe")
+    @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecipeIngredient> ingredients = new ArrayList<>();
+
 
     public BigDecimal calculateTotalCalories() {
         BigDecimal total = BigDecimal.ZERO;

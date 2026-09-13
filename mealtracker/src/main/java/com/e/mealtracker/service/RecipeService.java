@@ -1,13 +1,11 @@
 package com.e.mealtracker.service;
 
+import com.e.mealtracker.domain.*;
+import com.e.mealtracker.dto.RecipeResponse;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.exception.RecipeNotFoundException;
 import com.e.mealtracker.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
-import com.e.mealtracker.domain.Ingredient;
-import com.e.mealtracker.domain.MealType;
-import com.e.mealtracker.domain.Recipe;
-import com.e.mealtracker.domain.RecipeIngredient;
 import com.e.mealtracker.dto.CreateRecipeRequest;
 import com.e.mealtracker.dto.IngredientWeightDto;
 import com.e.mealtracker.dto.RecipeDto;
@@ -15,6 +13,7 @@ import com.e.mealtracker.repository.IngredientRepository;
 import com.e.mealtracker.repository.RecipeIngredientRepository;
 import com.e.mealtracker.repository.RecipeRepository;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,6 +23,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -34,6 +34,7 @@ public class RecipeService {
     private final IngredientRepository ingredientRepository;
     private final RecipeIngredientRepository recipeIngredientRepository;
     private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
 
     @Transactional
     public RecipeDto saveRecipe(CreateRecipeRequest request, String username) {
@@ -202,6 +203,46 @@ public class RecipeService {
                 ));
         recipeRepository.delete(recipe);
     }
+
+
+    public List<RecipeResponse> getPublicRecipes() {
+        return recipeRepository.findPublicRecipes().stream()
+                .map(RecipeResponse::fromRecipe)
+                .collect(Collectors.toList());
+    }
+    @Transactional
+    public RecipeResponse toggleRecipeVisibility(Long id, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+
+        Recipe recipe = recipeRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new RecipeNotFoundException(
+                        "Рецепт с ID " + id + " не найден или не принадлежит пользователю " + username
+                ));
+
+        if (recipe.getVisibility() == RecipeVisibility.PUBLIC) {
+            recipe.setVisibility(RecipeVisibility.PRIVATE);
+        } else {
+            recipe.setVisibility(RecipeVisibility.PUBLIC);
+        }
+
+        recipeRepository.save(recipe);
+
+        return new RecipeResponse(
+                recipe.getId(),
+                recipe.getName(),
+                recipe.getCategory() != null ? recipe.getCategory().getDisplayName() : null,
+                recipe.getTotalCalories(),
+                recipe.getTotalProteins(),
+                recipe.getTotalFats(),
+                recipe.getTotalCarbs(),
+                recipe.getVisibility()
+        );
+    }
+
+
+
+
 }
 
 
