@@ -1,5 +1,6 @@
 package com.e.mealtracker.domain;
 
+import com.e.mealtracker.entity.User;
 import com.e.mealtracker.util.ActivityLevel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -19,8 +20,9 @@ public class UserGoals {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String username; // <-- привязка к пользователю
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(nullable = false)
     private double currentWeightKg;

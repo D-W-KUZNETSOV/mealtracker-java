@@ -2,6 +2,7 @@ package com.e.mealtracker.service;
 
 import com.e.mealtracker.domain.UserGoals;
 import com.e.mealtracker.dto.TargetProteinResponse;
+import com.e.mealtracker.entity.User;
 import com.e.mealtracker.entity.UserProfile;
 import com.e.mealtracker.repository.UserGoalsRepository;
 import com.e.mealtracker.util.ActivityLevel;
@@ -30,10 +31,10 @@ public class NutritionCalculationService {
     );
 
     @Transactional
-    public UserGoals setUserGoals(String username, double currentWeightKg, double proteinPerKg,
+    public UserGoals setUserGoals(User user, double currentWeightKg, double proteinPerKg,
                                   Integer targetCalories, ActivityLevel activityLevel) {
         Optional<UserGoals> existingOpt =
-                userGoalsRepository.findFirstByUsernameOrderByCreatedAtDesc(username);
+                userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user);
         UserGoals goals;
 
         if (existingOpt.isPresent()) {
@@ -44,7 +45,7 @@ public class NutritionCalculationService {
             goals.setActivityLevel(activityLevel);
         } else {
             goals = new UserGoals();
-            goals.setUsername(username);
+            goals.setUser(user);
             goals.setCurrentWeightKg(currentWeightKg);
             goals.setProteinPerKg(proteinPerKg);
             goals.setTargetCalories(targetCalories);
@@ -54,9 +55,9 @@ public class NutritionCalculationService {
         return userGoalsRepository.save(goals);
     }
 
-    public TargetProteinResponse calculateTargetProteinFromGoals(String username) {
+    public TargetProteinResponse calculateTargetProteinFromGoals(User user) {
         Optional<UserGoals> goalsOpt =
-                userGoalsRepository.findFirstByUsernameOrderByCreatedAtDesc(username);
+                userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user);
 
         double weightKg;
         double proteinPerKg;
@@ -77,14 +78,10 @@ public class NutritionCalculationService {
         return new TargetProteinResponse(weightKg, targetProtein);
     }
 
-    public Optional<UserGoals> getCurrentGoals(String username) {
-        return userGoalsRepository.findFirstByUsernameOrderByCreatedAtDesc(username);
+    public Optional<UserGoals> getCurrentGoals(User user) {
+        return userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user);
     }
 
-    /**
-     * Рассчитывает суточную норму калорий по формуле Mifflin-St Jeor.
-     * Возвращает 0, если не хватает обязательных данных (вес, рост, возраст, пол).
-     */
     public BigDecimal calculateDailyCalories(UserProfile profile) {
         if (profile == null) {
             log.warn("Профиль пользователя отсутствует");
@@ -93,7 +90,6 @@ public class NutritionCalculationService {
         if (profile.getActivityLevel() == null) {
             throw new IllegalStateException("Activity level is not set for user profile");
         }
-
 
         BigDecimal currentWeight = profile.getCurrentWeightKg();
         if (currentWeight == null || currentWeight.compareTo(BigDecimal.ZERO) <= 0) {
@@ -115,7 +111,6 @@ public class NutritionCalculationService {
         }
 
         String gender = profile.getGender();
-        // Валидация пола: принимаем только MALE/FEMALE
         if (!"MALE".equals(gender) && !"FEMALE".equals(gender)) {
             log.warn("Некорректное значение пола '{}'. Ожидаются MALE или FEMALE", gender);
             return BigDecimal.ZERO;
@@ -131,7 +126,7 @@ public class NutritionCalculationService {
                     .add(BigDecimal.valueOf(6.25 * heightCm))
                     .subtract(BigDecimal.valueOf(5 * age))
                     .add(BigDecimal.valueOf(5));
-        } else { // FEMALE
+        } else {
             bmr = BigDecimal.valueOf(10 * weightKg)
                     .add(BigDecimal.valueOf(6.25 * heightCm))
                     .subtract(BigDecimal.valueOf(5 * age))
@@ -141,7 +136,6 @@ public class NutritionCalculationService {
         double multiplier = ACTIVITY_MULTIPLIERS.getOrDefault(profile.getActivityLevel(), 1.55);
         BigDecimal tdee = bmr.multiply(BigDecimal.valueOf(multiplier));
 
-        // Дефицит 500 ккал, если целевой вес меньше текущего
         if (profile.getTargetWeightKg() != null
                 && profile.getTargetWeightKg().compareTo(currentWeight) < 0) {
             tdee = tdee.subtract(BigDecimal.valueOf(500));
@@ -150,6 +144,7 @@ public class NutritionCalculationService {
         return tdee.setScale(0, RoundingMode.HALF_UP);
     }
 }
+
 
 
 

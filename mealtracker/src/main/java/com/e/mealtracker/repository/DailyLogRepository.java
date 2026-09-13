@@ -1,7 +1,7 @@
 package com.e.mealtracker.repository;
 
 import com.e.mealtracker.domain.DailyLog;
-import com.e.mealtracker.domain.Recipe;
+import com.e.mealtracker.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,8 +13,19 @@ import java.util.Optional;
 
 @Repository
 public interface DailyLogRepository extends JpaRepository<DailyLog, Long> {
-    List<DailyLog> findByDateAndUsername(LocalDate date, String username);
-    Optional<Recipe> findByIdAndUsername(Long id, String username);
-    Page<DailyLog> findByUsername(String username, Pageable pageable);
+
+    // Вместо findByDateAndUsername:
+   // List<DailyLog> findByUserAndLogDate(User user, LocalDate logDate);
+
+    // findByIdAndUsername удаляем — он некорректен (DailyLog не содержит username)
+    // Если нужно найти DailyLog по ID — достаточно findById из JpaRepository
+
+    // Вместо findByUsername:
+    Page<DailyLog> findByUser(User user, Pageable pageable);
+
+    // Эти два можно оставить, они правильные:
+    Optional<DailyLog> findByUserIdAndLogDate(Long userId, LocalDate logDate);
+    Optional<DailyLog> findByUserAndLogDate(User user, LocalDate logDate);
 }
+
 
