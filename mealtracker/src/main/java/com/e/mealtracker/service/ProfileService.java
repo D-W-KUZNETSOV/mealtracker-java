@@ -4,15 +4,14 @@ import com.e.mealtracker.dto.UserProfileDto;
 import com.e.mealtracker.dto.UserProfileUpdateDto;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.entity.UserProfile;
-import com.e.mealtracker.exception.NotFoundException;
+import com.e.mealtracker.exception.ResourceNotFoundException;
 import com.e.mealtracker.repository.UserRepository;
 import com.e.mealtracker.util.AgeCalculator;
+import com.e.mealtracker.util.BmiCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -24,20 +23,18 @@ public class ProfileService {
     @Transactional
     public void updateProfile(String username, UserProfileUpdateDto dto) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new NotFoundException("User not found: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
         UserProfile profile = user.getProfile();
-
         if (profile == null) {
             profile = new UserProfile();
             profile.setUser(user);
             user.setProfile(profile);
         }
+
         if (dto.getDateOfBirth() != null) {
             profile.setDateOfBirth(dto.getDateOfBirth());
         }
-
-
         if (dto.getHeightCm() != null) {
             profile.setHeightCm(dto.getHeightCm());
         }
@@ -50,24 +47,26 @@ public class ProfileService {
         if (dto.getGender() != null) {
             profile.setGender(dto.getGender());
         }
-        if (dto.getActivityLevel() != null) {
-            profile.setActivityLevel(dto.getActivityLevel());
-        }
+
+
+        // НЕ ставим дефолт здесь — пусть будет в сущности или миграции
+        // Если очень надо — вынесите в отдельный метод или оставьте как есть
         if (profile.getActivityLevel() == null) {
             profile.setActivityLevel("MODERATE");
-
         }
-        userRepository.save(user);
+
+        log.info("Profile updated for user: {}", username);
+        // userRepository.save(user) НЕ нужен — вы в @Transactional
     }
 
     @Transactional(readOnly = true)
     public UserProfileDto getProfile(String username) {
-        var user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new NotFoundException("User not found: " + username));
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
-        var profile = user.getProfile();
+        UserProfile profile = user.getProfile();
         if (profile == null) {
-            throw new NotFoundException("Profile not found for user: " + username);
+            throw new ResourceNotFoundException("Profile not found for user: " + username);
         }
 
         UserProfileDto dto = new UserProfileDto();
@@ -84,18 +83,12 @@ public class ProfileService {
             dto.setAgeYears(null);
         }
 
-        // ИМТ
-        if (profile.getCurrentWeightKg() != null && profile.getHeightCm() != null) {
-            BigDecimal heightM = new BigDecimal(profile.getHeightCm()).divide(new BigDecimal(100));
-            BigDecimal bmi = profile.getCurrentWeightKg().divide(heightM.pow(2), java.math.MathContext.DECIMAL32);
-            dto.setBmi(bmi);
-        } else {
-            dto.setBmi(null);
-        }
+        // ✅ ИМТ через BmiCalculator — вся валидация и округление внутри
+        dto.setBmi(BmiCalculator.calculate(
+                profile.getCurrentWeightKg(),
+                profile.getHeightCm()
+        ));
 
         return dto;
     }
-
-
 }
-
