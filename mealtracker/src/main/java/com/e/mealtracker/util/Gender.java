@@ -1,4 +1,4 @@
-package com.e.mealtracker.domain;
+package com.e.mealtracker.util;
 
 
 import io.swagger.v3.oas.annotations.media.Schema;

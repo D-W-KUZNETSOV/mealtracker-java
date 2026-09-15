@@ -1,5 +1,7 @@
 package com.e.mealtracker.entity;
 
+import com.e.mealtracker.util.ActivityLevel;
+import com.e.mealtracker.util.Gender;   // ← добавить
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,11 +16,10 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserProfile {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id")
@@ -27,10 +28,15 @@ public class UserProfile {
     private Integer heightCm;
     private BigDecimal targetWeightKg;
     private BigDecimal currentWeightKg;
-    private String gender; // MALE, FEMALE
-    private String activityLevel = "MODERATE";// LOW, MODERATE, HIGH
+
+    // ✅ БЫЛО: private String gender;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", length = 10)
+    private Gender gender;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "activity_level", length = 20)
+    private ActivityLevel activityLevel = ActivityLevel.MODERATE;
+
     private LocalDate dateOfBirth;
-
-
 }
-

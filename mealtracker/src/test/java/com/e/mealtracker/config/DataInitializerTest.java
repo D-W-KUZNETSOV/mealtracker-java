@@ -68,10 +68,11 @@ class DataInitializerTest {
     // ============================================================
 
     private Ingredient createIngredient(String name) {
-        Ingredient ingredient = new Ingredient();
-        ingredient.setId(1L);
-        ingredient.setName(name);
-        return ingredient;
+        Ingredient ing = new Ingredient();
+        ing.setName(name);
+        ing.setUsername(Ingredient.SYSTEM_USERNAME);   // ← это должно быть
+        //ing.setProteinsPer100g(...);  // если нужно
+        return ing;
     }
 
     private User createDemoUser(String username) {
@@ -84,9 +85,12 @@ class DataInitializerTest {
     }
 
     private void mockSharedIngredientsExist() {
-        when(ingredientRepository.findByNameIgnoreCaseAndUsernameIsNull(eq("Куриная грудка")))
+        when(ingredientRepository.findByNameIgnoreCaseAndUsername(
+                eq("Куриная грудка"), eq(Ingredient.SYSTEM_USERNAME)))
                 .thenReturn(Optional.of(createIngredient("Куриная грудка")));
-        when(ingredientRepository.findByNameIgnoreCaseAndUsernameIsNull(eq("Гречка варёная")))
+
+        when(ingredientRepository.findByNameIgnoreCaseAndUsername(
+                eq("Гречка варёная"), eq(Ingredient.SYSTEM_USERNAME)))   // ← ИСПРАВЛЕНО
                 .thenReturn(Optional.of(createIngredient("Гречка варёная")));
     }
 
@@ -188,7 +192,8 @@ class DataInitializerTest {
 
         dataInitializer.run();
 
-        verify(ingredientRepository, never()).findByNameIgnoreCaseAndUsernameIsNull(anyString());
+        verify(ingredientRepository, never())
+                .findByNameIgnoreCaseAndUsername(anyString(), anyString());
         verify(ingredientRepository, never()).save(any(Ingredient.class));
         verify(recipeRepository, never()).findByNameAndUser(anyString(), any(User.class));
     }
@@ -215,7 +220,9 @@ class DataInitializerTest {
 
         verify(recipeRepository).findByNameAndUser(anyString(), eq(demoUser));
         verify(ingredientRepository, times(1))
-                .findByNameIgnoreCaseAndUsernameIsNull(eq("Куриная грудка"));
+                .findByNameIgnoreCaseAndUsername(
+                        eq("Куриная грудка"), eq(Ingredient.SYSTEM_USERNAME));
     }
+
 }
 

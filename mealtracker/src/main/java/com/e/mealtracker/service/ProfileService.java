@@ -6,6 +6,7 @@ import com.e.mealtracker.entity.User;
 import com.e.mealtracker.entity.UserProfile;
 import com.e.mealtracker.exception.ResourceNotFoundException;
 import com.e.mealtracker.repository.UserRepository;
+import com.e.mealtracker.util.ActivityLevel;
 import com.e.mealtracker.util.AgeCalculator;
 import com.e.mealtracker.util.BmiCalculator;
 import lombok.RequiredArgsConstructor;
@@ -45,18 +46,19 @@ public class ProfileService {
             profile.setTargetWeightKg(dto.getTargetWeightKg());
         }
         if (dto.getGender() != null) {
-            profile.setGender(dto.getGender());
+            profile.setGender(dto.getGender());   // Gender → Gender
+        }
+        // ✅ DTO уже хранит ActivityLevel — прямая передача
+        if (dto.getActivityLevel() != null) {
+            profile.setActivityLevel(dto.getActivityLevel());
         }
 
-
-        // НЕ ставим дефолт здесь — пусть будет в сущности или миграции
-        // Если очень надо — вынесите в отдельный метод или оставьте как есть
+        // ✅ страховка на случай, если поле null (старые записи / new UserProfile)
         if (profile.getActivityLevel() == null) {
-            profile.setActivityLevel("MODERATE");
+            profile.setActivityLevel(ActivityLevel.MODERATE);
         }
 
         log.info("Profile updated for user: {}", username);
-        // userRepository.save(user) НЕ нужен — вы в @Transactional
     }
 
     @Transactional(readOnly = true)
@@ -74,16 +76,15 @@ public class ProfileService {
         dto.setCurrentWeightKg(profile.getCurrentWeightKg());
         dto.setTargetWeightKg(profile.getTargetWeightKg());
         dto.setGender(profile.getGender());
+        // ✅ enum → enum, без конвертаций
         dto.setActivityLevel(profile.getActivityLevel());
 
-        // Возраст
         if (profile.getDateOfBirth() != null) {
             dto.setAgeYears(AgeCalculator.calculateAge(profile.getDateOfBirth()));
         } else {
             dto.setAgeYears(null);
         }
 
-        // ✅ ИМТ через BmiCalculator — вся валидация и округление внутри
         dto.setBmi(BmiCalculator.calculate(
                 profile.getCurrentWeightKg(),
                 profile.getHeightCm()

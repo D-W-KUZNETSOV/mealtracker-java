@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FoodEntry {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -25,33 +26,33 @@ public class FoodEntry {
     @JoinColumn(name = "recipe_id")
     private Recipe recipe;
 
-    @Column(length = 200, nullable = true)
-    private String productName; // если без рецепта
+    @Column(name = "product_name", length = 200)
+    private String productName;
 
-    @Column(nullable = false)
+    @Column(name = "weight_in_grams", nullable = false)
     private double weightInGrams;
 
-    // КБЖУ на 100 г — берутся из рецепта или продукта
-    @Column(precision = 10, scale = 2, nullable = false)
+    @Column(name = "calories_per100g", precision = 10, scale = 2, nullable = false)
     private BigDecimal caloriesPer100g;
 
-    @Column(precision = 10, scale = 2, nullable = false)
+    @Column(name = "protein_per100g", precision = 10, scale = 2, nullable = false)
     private BigDecimal proteinPer100g;
 
-    @Column(precision = 10, scale = 2, nullable = false)
+    @Column(name = "fat_per100g", precision = 10, scale = 2, nullable = false)
     private BigDecimal fatPer100g;
 
-    @Column(precision = 10, scale = 2, nullable = false)
+    @Column(name = "carbs_per100g", precision = 10, scale = 2, nullable = false)
     private BigDecimal carbsPer100g;
 
-    // посчитанные значения для этой порции (не transient, чтобы можно было быстро суммировать)
     @Column(precision = 10, scale = 2, nullable = false)
     private BigDecimal calories;
 
-    @Column(precision = 10, scale = 2, nullable = false)
+    // ✅ БЫЛО: private BigDecimal protein;
+    @Column(name = "proteins", precision = 10, scale = 2, nullable = false)
     private BigDecimal protein;
 
-    @Column(precision = 10, scale = 2, nullable = false)
+    // ✅ БЫЛО: private BigDecimal fat;
+    @Column(name = "fats", precision = 10, scale = 2, nullable = false)
     private BigDecimal fat;
 
     @Column(precision = 10, scale = 2, nullable = false)

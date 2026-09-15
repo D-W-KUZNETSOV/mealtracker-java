@@ -9,6 +9,8 @@ import com.e.mealtracker.entity.User;
 import com.e.mealtracker.entity.UserProfile;
 import com.e.mealtracker.repository.*;
 import com.e.mealtracker.service.UserContextService;
+import com.e.mealtracker.util.ActivityLevel;
+import com.e.mealtracker.util.Gender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -69,8 +71,8 @@ public class DataInitializer implements CommandLineRunner {
                     profile.setHeightCm(178);
                     profile.setTargetWeightKg(new BigDecimal("75.0"));
                     profile.setCurrentWeightKg(new BigDecimal("81.0"));
-                    profile.setGender("MALE");
-                    profile.setActivityLevel("MODERATE");
+                    profile.setGender(Gender.MALE);
+                    profile.setActivityLevel(ActivityLevel.MODERATE);
                     profile.setDateOfBirth(LocalDate.of(1995, 5, 20));
 
                     newUser.setProfile(profile);
@@ -95,9 +97,9 @@ public class DataInitializer implements CommandLineRunner {
                 });
 
         Optional<Ingredient> chickenOpt = ingredientRepository
-                .findByNameIgnoreCaseAndUsernameIsNull("Куриная грудка");
+                .findByNameIgnoreCaseAndUsername("Куриная грудка", Ingredient.SYSTEM_USERNAME);
         Optional<Ingredient> buckwheatOpt = ingredientRepository
-                .findByNameIgnoreCaseAndUsernameIsNull("Гречка варёная");
+                .findByNameIgnoreCaseAndUsername("Гречка варёная", Ingredient.SYSTEM_USERNAME);
 
         if (chickenOpt.isEmpty() || buckwheatOpt.isEmpty()) {
             log.warn("Required ingredients not found, skipping recipe creation.");

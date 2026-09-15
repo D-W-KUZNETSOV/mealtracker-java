@@ -7,6 +7,7 @@ import com.e.mealtracker.entity.UserProfile;
 import com.e.mealtracker.repository.UserGoalsRepository;
 import com.e.mealtracker.util.ActivityLevel;
 import com.e.mealtracker.util.AgeCalculator;
+import com.e.mealtracker.util.Gender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -24,40 +24,32 @@ public class NutritionCalculationService {
 
     private final UserGoalsRepository userGoalsRepository;
 
-    private static final Map<String, Double> ACTIVITY_MULTIPLIERS = Map.of(
-            "LOW", 1.2,
-            "MODERATE", 1.55,
-            "HIGH", 1.725
-    );
+    // ❌ УДАЛЕНО: ACTIVITY_MULTIPLIERS — источник истины в ActivityLevel
 
     @Transactional
     public UserGoals setUserGoals(User user, double currentWeightKg, double proteinPerKg,
                                   Integer targetCalories, ActivityLevel activityLevel) {
-        Optional<UserGoals> existingOpt =
-                userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user);
-        UserGoals goals;
+        // ✅ защита от null, чтобы не нарушить constraint в БД
+        if (activityLevel == null) activityLevel = ActivityLevel.SEDENTARY;
 
-        if (existingOpt.isPresent()) {
-            goals = existingOpt.get();
-            goals.setCurrentWeightKg(currentWeightKg);
-            goals.setProteinPerKg(proteinPerKg);
-            goals.setTargetCalories(targetCalories);
-            goals.setActivityLevel(activityLevel);
-        } else {
-            goals = new UserGoals();
-            goals.setUser(user);
-            goals.setCurrentWeightKg(currentWeightKg);
-            goals.setProteinPerKg(proteinPerKg);
-            goals.setTargetCalories(targetCalories);
-            goals.setActivityLevel(activityLevel);
-        }
+        UserGoals goals = userGoalsRepository
+                .findFirstByUserOrderByCreatedAtDesc(user)
+                .orElseGet(() -> {
+                    UserGoals g = new UserGoals();
+                    g.setUser(user);
+                    return g;
+                });
+
+        goals.setCurrentWeightKg(currentWeightKg);
+        goals.setProteinPerKg(proteinPerKg);
+        goals.setTargetCalories(targetCalories);
+        goals.setActivityLevel(activityLevel);
 
         return userGoalsRepository.save(goals);
     }
 
     public TargetProteinResponse calculateTargetProteinFromGoals(User user) {
-        Optional<UserGoals> goalsOpt =
-                userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user);
+        Optional<UserGoals> goalsOpt = userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user);
 
         double weightKg;
         double proteinPerKg;
@@ -67,6 +59,7 @@ public class NutritionCalculationService {
             UserGoals goals = goalsOpt.get();
             weightKg = goals.getCurrentWeightKg();
             proteinPerKg = goals.getProteinPerKg();
+            // ✅ enum всегда не null благодаря @PrePersist и дефолту
             activityMultiplier = goals.getActivityLevel().getMultiplier();
         } else {
             weightKg = 81.0;
@@ -110,9 +103,9 @@ public class NutritionCalculationService {
             return BigDecimal.ZERO;
         }
 
-        String gender = profile.getGender();
-        if (!"MALE".equals(gender) && !"FEMALE".equals(gender)) {
-            log.warn("Некорректное значение пола '{}'. Ожидаются MALE или FEMALE", gender);
+        Gender gender = profile.getGender();
+        if (gender == null) {
+            log.warn("Пол не указан для расчёта калорий");
             return BigDecimal.ZERO;
         }
 
@@ -121,7 +114,7 @@ public class NutritionCalculationService {
         double weightKg = currentWeight.doubleValue();
 
         BigDecimal bmr;
-        if ("MALE".equals(gender)) {
+        if (gender == Gender.MALE) {
             bmr = BigDecimal.valueOf(10 * weightKg)
                     .add(BigDecimal.valueOf(6.25 * heightCm))
                     .subtract(BigDecimal.valueOf(5 * age))
@@ -133,7 +126,7 @@ public class NutritionCalculationService {
                     .subtract(BigDecimal.valueOf(161));
         }
 
-        double multiplier = ACTIVITY_MULTIPLIERS.getOrDefault(profile.getActivityLevel(), 1.55);
+        double multiplier = profile.getActivityLevel().getMultiplier();
         BigDecimal tdee = bmr.multiply(BigDecimal.valueOf(multiplier));
 
         if (profile.getTargetWeightKg() != null
