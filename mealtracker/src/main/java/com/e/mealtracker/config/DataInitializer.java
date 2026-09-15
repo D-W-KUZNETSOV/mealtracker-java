@@ -1,5 +1,9 @@
 package com.e.mealtracker.config;
 
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.e.mealtracker.domain.Ingredient;
 import com.e.mealtracker.domain.Recipe;
 import com.e.mealtracker.domain.RecipeIngredient;
@@ -8,7 +12,6 @@ import com.e.mealtracker.entity.Role;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.entity.UserProfile;
 import com.e.mealtracker.repository.*;
-import com.e.mealtracker.service.UserContextService;
 import com.e.mealtracker.util.ActivityLevel;
 import com.e.mealtracker.util.Gender;
 import lombok.RequiredArgsConstructor;
@@ -35,14 +38,24 @@ public class DataInitializer implements CommandLineRunner {
     private final RecipeIngredientRepository recipeIngredientRepository;
     private final UserRepository userRepository;
     private final Environment env;
-    private final UserContextService userContextService;
+
     private final PasswordEncoder passwordEncoder;
 
     @Value("${app.demo.default-username:dmitriy}")
-    private String defaultDemoUsername;
+    private String defaultDemoUsername = "dmitriy";  // ← Java-дефолт на случай, если @Value не сработает
 
     @Value("${app.demo.default-password:demo}")
-    private String demoPassword;
+    private String demoPassword = "demo";
+
+    private String resolveUsername() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null
+                || !auth.isAuthenticated()
+                || auth instanceof AnonymousAuthenticationToken) {
+            return null;
+        }
+        return auth.getName();
+    }
 
     @Override
     @Transactional
@@ -53,8 +66,8 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        String currentUsername = userContextService.getCurrentUsername();
-        if (currentUsername == null) {
+        String currentUsername = resolveUsername();
+        if (currentUsername == null || currentUsername.isBlank()) {
             currentUsername = defaultDemoUsername;
         }
 
@@ -131,7 +144,9 @@ public class DataInitializer implements CommandLineRunner {
             log.debug("Ingredient '{}' already in recipe '{}'",
                     ingredient.getName(), recipe.getName());
         }
+
     }
+
 }
 
 
