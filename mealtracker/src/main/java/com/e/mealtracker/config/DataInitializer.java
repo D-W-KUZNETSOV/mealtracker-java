@@ -19,7 +19,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.beans.factory.annotation.Value;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -38,7 +38,11 @@ public class DataInitializer implements CommandLineRunner {
     private final UserContextService userContextService;
     private final PasswordEncoder passwordEncoder;
 
-    private static final String DEFAULT_DEMO_USER = "dmitriy";
+    @Value("${app.demo.default-username:dmitriy}")
+    private String defaultDemoUsername;
+
+    @Value("${app.demo.default-password:demo}")
+    private String demoPassword;
 
     @Override
     @Transactional
@@ -51,7 +55,7 @@ public class DataInitializer implements CommandLineRunner {
 
         String currentUsername = userContextService.getCurrentUsername();
         if (currentUsername == null) {
-            currentUsername = DEFAULT_DEMO_USER;
+            currentUsername = defaultDemoUsername;
         }
 
         log.info("Starting demo data initialization for user: {}", currentUsername);
@@ -63,7 +67,7 @@ public class DataInitializer implements CommandLineRunner {
                     log.warn("User '{}' not found. Creating demo user.", finalUsername);
                     User newUser = new User();
                     newUser.setUsername(finalUsername);
-                    newUser.setPassword(passwordEncoder.encode("banana19"));
+                    newUser.setPassword(passwordEncoder.encode(demoPassword));
                     newUser.setRole(Role.USER);
                     newUser.setEmail("torgor_8@mail.ru");
 
