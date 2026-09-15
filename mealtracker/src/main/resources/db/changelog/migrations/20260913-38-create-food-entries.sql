@@ -2,7 +2,7 @@
 
 --changeset dmitriy:38-create-food-entries
 CREATE TABLE food_entries (
-    id                BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id                BIGSERIAL PRIMARY KEY,
     daily_log_id      BIGINT       NOT NULL,
     recipe_id         BIGINT,
     product_name      VARCHAR(255),

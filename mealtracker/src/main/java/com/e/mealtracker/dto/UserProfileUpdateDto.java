@@ -1,44 +1,34 @@
 package com.e.mealtracker.dto;
 
+import com.e.mealtracker.util.ActivityLevel;
+import com.e.mealtracker.util.Gender;   // ← добавить
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Data
 public class UserProfileUpdateDto {
 
-    @Schema(example = "1995-06-15", description = "Дата рождения")
     private LocalDate dateOfBirth;
 
-    @Min(100)
-    @Max(250)
-    @Schema(example = "178", description = "Рост в см (100–250)")
+    @Min(50) @Max(300)
     private Integer heightCm;
 
+    @DecimalMin("20.0")
+    private BigDecimal currentWeightKg;
 
+    @DecimalMin("20.0")
+    private BigDecimal targetWeightKg;
 
-    @DecimalMin(value = "30.0", inclusive = false)
-    @Schema(example = "80.5", description = "Текущий вес в кг (>30)")
-    private java.math.BigDecimal currentWeightKg;
+    // ✅ БЫЛО: @Pattern(regexp = "^(MALE|FEMALE)$") private String gender;
+    private Gender gender;
 
-    @DecimalMin(value = "30.0", inclusive = false)
-    @Schema(example = "75.0", description = "Целевой вес в кг (>30)")
-    private java.math.BigDecimal targetWeightKg;
-
-    // Убрали @NotBlank — теперь поле можно не передавать
-    @Pattern(regexp = "^(MALE|FEMALE)$")
-    @Schema(allowableValues = {"MALE", "FEMALE"}, example = "MALE", description = "Пол")
-    private String gender;
-
-    // Убрали @NotBlank — теперь поле можно не передавать
-    @Pattern(regexp = "^(LOW|MODERATE|HIGH)$")
-    @Schema(allowableValues = {"LOW", "MODERATE", "HIGH"}, example = "MODERATE", description = "Уровень активности")
-    private String activityLevel;
+    @Schema(allowableValues = {"SEDENTARY", "LIGHT", "MODERATE", "HIGH", "VERY_HIGH"})
+    private ActivityLevel activityLevel;
 }
-
 

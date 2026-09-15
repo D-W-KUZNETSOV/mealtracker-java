@@ -2,10 +2,7 @@ package com.e.mealtracker.domain;
 
 import com.e.mealtracker.entity.User;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-
+import lombok.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -13,9 +10,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "recipes")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"user", "ingredients"})
 public class Recipe {
 
     @Id
@@ -43,19 +42,18 @@ public class Recipe {
     @Column(name = "visibility", nullable = false)
     private RecipeVisibility visibility = RecipeVisibility.PRIVATE;
 
-    @Column(columnDefinition = "DECIMAL(10,2)", precision = 10, scale = 2)
+    @Column(precision = 10, scale = 2)
     private BigDecimal totalCalories;
 
-    @Column(columnDefinition = "DECIMAL(10,2)", precision = 10, scale = 2)
+    @Column(precision = 10, scale = 2)
     private BigDecimal totalProteins;
 
-    @Column(columnDefinition = "DECIMAL(10,2)", precision = 10, scale = 2)
+    @Column(precision = 10, scale = 2)
     private BigDecimal totalFats;
 
-    @Column(columnDefinition = "DECIMAL(10,2)", precision = 10, scale = 2)
+    @Column(precision = 10, scale = 2)
     private BigDecimal totalCarbs;
 
-    // ✅ Теперь сохраняются в БД, а не @Transient
     @Column(name = "calories_per_100g", precision = 10, scale = 2)
     private BigDecimal caloriesPer100g = BigDecimal.ZERO;
 
@@ -70,8 +68,6 @@ public class Recipe {
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecipeIngredient> ingredients = new ArrayList<>();
-
-    // --- методы расчёта суммарных КБЖУ остаются ---
 
     public BigDecimal calculateTotalCalories() {
         BigDecimal total = BigDecimal.ZERO;
@@ -128,6 +124,18 @@ public class Recipe {
             total = total.add(portion);
         }
         return total.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Recipe other)) return false;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }
 

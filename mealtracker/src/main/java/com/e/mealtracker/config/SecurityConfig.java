@@ -1,12 +1,15 @@
 package com.e.mealtracker.config;
 
+import com.e.mealtracker.dto.ApiError;
 import com.e.mealtracker.security.JwtAuthenticationFilter;
-import jakarta.servlet.annotation.WebServlet;
+import tools.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -14,14 +17,16 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.boot.web.servlet.ServletRegistrationBean;
 
-
+import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 
 @Configuration
@@ -30,12 +35,13 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())  // ← вот так
+                .csrf(csrf -> csrf.disable())
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(auth -> auth
@@ -45,31 +51,32 @@ public class SecurityConfig {
                         .requestMatchers("/images/**").permitAll()
                         .anyRequest().authenticated()
                 )
+                // ✅ exceptionHandling — на уровне http, а не внутри authorizeHttpRequests
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(authenticationEntryPoint())
+                        .accessDeniedHandler(accessDeniedHandler())
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // ✅ Какие домены разрешены
         configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000",   // React / Next.js
-                "http://localhost:5173",   // Vite (React/Vue)
-                "http://localhost:4200",   // Angular
-                "http://localhost:8080"    // Сам бэкенд (для Swagger)
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://localhost:4200",
+                "http://localhost:8080"
         ));
 
-        // ✅ Какие HTTP методы разрешены
         configuration.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
         ));
 
-        // ✅ Какие заголовки разрешены
         configuration.setAllowedHeaders(List.of(
                 "Authorization",
                 "Content-Type",
@@ -77,13 +84,9 @@ public class SecurityConfig {
                 "X-Requested-With"
         ));
 
-        // ✅ Разрешены ли куки и авторизация
         configuration.setAllowCredentials(true);
-
-        // ✅ Как долго кэшировать настройки CORS (в секундах)
         configuration.setMaxAge(3600L);
 
-        // ✅ Применяем настройки ко всем эндпоинтам
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
 
@@ -100,7 +103,6 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-
     @Bean
     public ServletRegistrationBean<org.h2.server.web.JakartaWebServlet> h2ConsoleServlet() {
         ServletRegistrationBean<org.h2.server.web.JakartaWebServlet> bean =
@@ -109,9 +111,41 @@ public class SecurityConfig {
         return bean;
     }
 
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint() {
+        return (request, response, authException) -> {
+            ApiError error = new ApiError(
+                    Instant.now(),
+                    HttpStatus.UNAUTHORIZED.value(),
+                    HttpStatus.UNAUTHORIZED.getReasonPhrase(),
+                    "UNAUTHORIZED",
+                    "Требуется аутентификация",
+                    request.getRequestURI()
+            );
+            writeJson(response, HttpStatus.UNAUTHORIZED, error);
+        };
+    }
 
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            ApiError error = new ApiError(
+                    Instant.now(),
+                    HttpStatus.FORBIDDEN.value(),
+                    HttpStatus.FORBIDDEN.getReasonPhrase(),
+                    "ACCESS_DENIED",
+                    "Недостаточно прав для выполнения операции",
+                    request.getRequestURI()
+            );
+            writeJson(response, HttpStatus.FORBIDDEN, error);
+        };
+    }
 
-
-
-
+    private void writeJson(HttpServletResponse response, HttpStatus status, ApiError error)
+            throws IOException {
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+        objectMapper.writeValue(response.getWriter(), error);
+    }
 }

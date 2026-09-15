@@ -1,12 +1,21 @@
 package com.e.mealtracker.domain;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
-@Data
 @Entity
 @Table(name = "meal_recipes")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString(exclude = {"meal", "recipe"})
 public class MealRecipe {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -17,9 +26,18 @@ public class MealRecipe {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Recipe recipe;
 
-    // вес порции в граммах — если ты съел не весь рецепт
     @Column(nullable = false)
     private double portionWeightGrams;
 
-    // конструкторы, геттеры, сеттеры
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof MealRecipe other)) return false;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

@@ -1,6 +1,5 @@
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -33,17 +32,14 @@ build/
 ### VS Code ###
 .vscode/
 
-### ✅ ДОБАВЬТЕ ЭТИ СТРОЧКИ НИЖЕ ###
+### ✅ Секреты и локальные настройки ###
+.env
+*.env
+!.env.example
 
 # Logs
 *.log
 logs/
-
-# Environment variables
-.env
-*.env
-application-dev.properties
-application-prod.properties
 
 # Database
 *.db

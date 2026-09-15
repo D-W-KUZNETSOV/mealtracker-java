@@ -2,32 +2,34 @@ package com.e.mealtracker.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-
+import lombok.Setter;
+import lombok.ToString;
 
 @Entity
 @Table(name = "users")
-@Data
-@AllArgsConstructor
+@Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@ToString(exclude = "profile")   // ← исключаем обратную ссылку
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(unique = true, nullable = false)
-    private String username; // например, dmitriy
+    private String username;
 
     @Column(nullable = false)
-    private String password; // будет храниться как хеш!
+    private String password;
 
-    // Можно добавить role, если планируешь админку
     @Enumerated(EnumType.STRING)
     private Role role = Role.USER;
 
-    @Column(unique = true, nullable = true) // nullable=true пока, чтобы старые записи не ломались
+    @Column(unique = true)
     private String email;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -40,6 +42,16 @@ public class User {
         }
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User other)) return false;
+        return id != null && id.equals(other.id);
+    }
 
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }
 

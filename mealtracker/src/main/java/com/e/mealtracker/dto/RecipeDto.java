@@ -1,6 +1,5 @@
 package com.e.mealtracker.dto;
 
-import com.e.mealtracker.domain.MealType;
 import com.e.mealtracker.domain.Recipe;
 import lombok.Data;
 import java.math.BigDecimal;

@@ -48,26 +48,24 @@ public class IngredientController {
     }
 
     @GetMapping("/base")
-    @Operation(summary = "Получить базовые (общие) ингредиенты")
     public List<IngredientDto> getBaseIngredients() {
-        return ingredientRepository.findAllByUsernameIsNull().stream()
+        return ingredientRepository
+                .findAllByUsername(Ingredient.SYSTEM_USERNAME)   // ✅
+                .stream()
                 .map(this::toDto)
                 .toList();
     }
 
     @GetMapping("/base/search")
-    @Operation(summary = "Поиск базовых ингредиентов по имени")
-    public List<IngredientDto> searchBaseIngredients(
-            @RequestParam(required = false) String query) {
+    public List<IngredientDto> searchBaseIngredients(@RequestParam(required = false) String query) {
         List<Ingredient> list;
         if (query == null || query.isBlank()) {
-            list = ingredientRepository.findAllByUsernameIsNull();
+            list = ingredientRepository.findAllByUsername(Ingredient.SYSTEM_USERNAME);
         } else {
-            list = ingredientRepository.findByNameIgnoreCaseContainingAndUsernameIsNull(query);
+            list = ingredientRepository.findByNameIgnoreCaseContainingAndUsername(
+                    query, Ingredient.SYSTEM_USERNAME);
         }
-        return list.stream()
-                .map(this::toDto)
-                .toList();
+        return list.stream().map(this::toDto).toList();
     }
 
     @DeleteMapping("/{id}")
