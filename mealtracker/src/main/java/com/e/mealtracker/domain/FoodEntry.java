@@ -1,17 +1,18 @@
 package com.e.mealtracker.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "food_entries")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"dailyLog", "recipe"})
+
 public class FoodEntry {
 
     @Id
@@ -57,5 +58,18 @@ public class FoodEntry {
 
     @Column(precision = 10, scale = 2, nullable = false)
     private BigDecimal carbs;
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof FoodEntry other)) return false;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }
 

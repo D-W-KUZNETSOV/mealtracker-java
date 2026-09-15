@@ -1,15 +1,16 @@
 package com.e.mealtracker.domain;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(name = "ingredients")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+
+
 public class Ingredient {
 
     // ✅ константа для базовых ингредиентов
@@ -43,6 +44,18 @@ public class Ingredient {
 
     public boolean isBase() {
         return SYSTEM_USERNAME.equals(username);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Ingredient other)) return false;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }
 

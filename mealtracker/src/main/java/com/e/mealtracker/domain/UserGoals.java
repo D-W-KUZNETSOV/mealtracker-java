@@ -3,17 +3,17 @@ package com.e.mealtracker.domain;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.util.ActivityLevel;   // ← добавить импорт
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user_goals")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = "user")
 public class UserGoals {
 
     @Id
@@ -45,5 +45,17 @@ public class UserGoals {
     protected void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();
         if (activityLevel == null) activityLevel = ActivityLevel.SEDENTARY;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof UserGoals other)) return false;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }

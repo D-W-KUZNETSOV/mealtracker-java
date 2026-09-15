@@ -1,20 +1,24 @@
 package com.e.mealtracker.entity;
 
 import com.e.mealtracker.util.ActivityLevel;
-import com.e.mealtracker.util.Gender;   // ← добавить
+import com.e.mealtracker.util.Gender;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "user_profile")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = "user")   // ← исключаем обратную ссылку
 public class UserProfile {
 
     @Id
@@ -29,7 +33,6 @@ public class UserProfile {
     private BigDecimal targetWeightKg;
     private BigDecimal currentWeightKg;
 
-    // ✅ БЫЛО: private String gender;
     @Enumerated(EnumType.STRING)
     @Column(name = "gender", length = 10)
     private Gender gender;
@@ -39,4 +42,16 @@ public class UserProfile {
     private ActivityLevel activityLevel = ActivityLevel.MODERATE;
 
     private LocalDate dateOfBirth;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof UserProfile other)) return false;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }
