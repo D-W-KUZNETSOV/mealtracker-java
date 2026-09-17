@@ -27,17 +27,15 @@ public class JwtService {
 
     @PostConstruct
     private void init() {
-
-
         try {
-            byte[] keyBytes = Decoders.BASE64.decode(secret);
+            byte[] keyBytes = Decoders.BASE64URL.decode(secret);
             if (keyBytes.length < 32) {
                 log.warn("JWT secret key is shorter than 32 bytes. This is insecure!");
             }
             this.signingKey = Keys.hmacShaKeyFor(keyBytes);
         } catch (IllegalArgumentException e) {
-            log.error("Invalid JWT secret: not a valid Base64 string. Check .env", e);
-            throw new IllegalStateException("JWT secret is not valid Base64", e);
+            log.error("Invalid JWT secret: not a valid Base64URL string. Check .env", e);
+            throw new IllegalStateException("JWT secret is not valid Base64URL", e);
         }
     }
 
