@@ -1,5 +1,9 @@
 package com.e.mealtracker.config;
 
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.e.mealtracker.domain.Ingredient;
 import com.e.mealtracker.domain.Recipe;
 import com.e.mealtracker.domain.RecipeIngredient;
@@ -9,7 +13,6 @@ import com.e.mealtracker.repository.IngredientRepository;
 import com.e.mealtracker.repository.RecipeIngredientRepository;
 import com.e.mealtracker.repository.RecipeRepository;
 import com.e.mealtracker.repository.UserRepository;
-import com.e.mealtracker.service.UserContextService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,7 +21,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.env.Environment;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -50,7 +55,8 @@ class DataInitializerTest {
     private Environment environment;
 
     @Mock
-    private UserContextService userContextService;
+    private PasswordEncoder passwordEncoder;
+
 
     @InjectMocks
     private DataInitializer dataInitializer;
@@ -59,6 +65,7 @@ class DataInitializerTest {
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.clearContext();
         lenient().when(environment.getProperty("app.init-demo-data", "false"))
                 .thenReturn("true");
     }
@@ -124,7 +131,9 @@ class DataInitializerTest {
     @Test
     @DisplayName("Повторный запуск не должен создавать дубликаты рецепта")
     void shouldNotDuplicateRecipeOnMultipleRuns() {
-        when(userContextService.getCurrentUsername()).thenReturn(TEST_USER);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(TEST_USER, null, List.of())
+        );
         mockUserExists(TEST_USER);
         User user = createDemoUser(TEST_USER);
         mockSharedIngredientsExist();
@@ -140,7 +149,9 @@ class DataInitializerTest {
     @Test
     @DisplayName("3 запуска подряд не создают дубликатов")
     void shouldBeIdempotentAcrossMultipleRuns() {
-        when(userContextService.getCurrentUsername()).thenReturn(TEST_USER);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(TEST_USER, null, List.of())
+        );
         mockUserExists(TEST_USER);
         User user = createDemoUser(TEST_USER);
         mockSharedIngredientsExist();
@@ -160,7 +171,9 @@ class DataInitializerTest {
     void shouldCreateRecipeOnFirstRun() {
         User user = createDemoUser(TEST_USER);
 
-        when(userContextService.getCurrentUsername()).thenReturn(TEST_USER);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(TEST_USER, null, List.of())
+        );
         when(userRepository.findByUsername(eq(TEST_USER))).thenReturn(Optional.of(user));
         mockSharedIngredientsExist();
 
@@ -201,7 +214,7 @@ class DataInitializerTest {
     @Test
     @DisplayName("При отсутствии авторизации используется fallback пользователь 'dmitriy'")
     void shouldUseFallbackUserWhenNoAuthentication() {
-        when(userContextService.getCurrentUsername()).thenReturn(null);
+
 
         User demoUser = createDemoUser("dmitriy");
         when(userRepository.findByUsername(eq("dmitriy"))).thenReturn(Optional.of(demoUser));
@@ -223,6 +236,7 @@ class DataInitializerTest {
                 .findByNameIgnoreCaseAndUsername(
                         eq("Куриная грудка"), eq(Ingredient.SYSTEM_USERNAME));
     }
+
 
 }
 
