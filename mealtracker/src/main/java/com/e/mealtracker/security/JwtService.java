@@ -27,8 +27,10 @@ public class JwtService {
 
     @PostConstruct
     private void init() {
+
+
         try {
-            byte[] keyBytes = Decoders.BASE64URL.decode(secret);
+            byte[] keyBytes = Decoders.BASE64.decode(secret);   // было BASE64URL
             if (keyBytes.length < 32) {
                 log.warn("JWT secret key is shorter than 32 bytes. This is insecure!");
             }
