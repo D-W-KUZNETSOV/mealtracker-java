@@ -2,6 +2,7 @@ package com.e.mealtracker.service;
 
 import com.e.mealtracker.domain.UserGoals;
 import com.e.mealtracker.dto.TargetProteinResponse;
+import com.e.mealtracker.dto.UserGoalsDto;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.entity.UserProfile;
 import com.e.mealtracker.repository.UserGoalsRepository;
@@ -27,9 +28,8 @@ public class NutritionCalculationService {
     // ❌ УДАЛЕНО: ACTIVITY_MULTIPLIERS — источник истины в ActivityLevel
 
     @Transactional
-    public UserGoals setUserGoals(User user, double currentWeightKg, double proteinPerKg,
-                                  Integer targetCalories, ActivityLevel activityLevel) {
-        // ✅ защита от null, чтобы не нарушить constraint в БД
+    public UserGoalsDto setUserGoals(User user, double currentWeightKg, double proteinPerKg,
+                                     Integer targetCalories, ActivityLevel activityLevel) {
         if (activityLevel == null) activityLevel = ActivityLevel.SEDENTARY;
 
         UserGoals goals = userGoalsRepository
@@ -45,7 +45,7 @@ public class NutritionCalculationService {
         goals.setTargetCalories(targetCalories);
         goals.setActivityLevel(activityLevel);
 
-        return userGoalsRepository.save(goals);
+        return UserGoalsDto.fromEntity(userGoalsRepository.save(goals));
     }
 
     public TargetProteinResponse calculateTargetProteinFromGoals(User user) {
@@ -71,8 +71,9 @@ public class NutritionCalculationService {
         return new TargetProteinResponse(weightKg, targetProtein);
     }
 
-    public Optional<UserGoals> getCurrentGoals(User user) {
-        return userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user);
+    public Optional<UserGoalsDto> getCurrentGoals(User user) {
+        return userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user)
+                .map(UserGoalsDto::fromEntity);
     }
 
     public BigDecimal calculateDailyCalories(UserProfile profile) {
