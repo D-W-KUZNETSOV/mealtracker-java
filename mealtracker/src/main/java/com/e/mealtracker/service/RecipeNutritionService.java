@@ -67,6 +67,7 @@ public class RecipeNutritionService {
         dto.setName(recipe.getName());
         dto.setDescription(recipe.getDescription());
         dto.setImageUrl(recipe.getImageUrl());
+        dto.setVisibility(recipe.getVisibility());
         dto.setIngredients(items);
         dto.setTotalCalories(recipe.getTotalCalories());
         dto.setTotalFats(recipe.getTotalFats());

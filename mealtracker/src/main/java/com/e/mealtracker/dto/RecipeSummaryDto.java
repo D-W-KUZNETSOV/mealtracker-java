@@ -1,5 +1,6 @@
 package com.e.mealtracker.dto;
 
+import com.e.mealtracker.domain.RecipeVisibility;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.util.List;
@@ -10,13 +11,13 @@ public class RecipeSummaryDto {
     private String name;
     private String description;
     private String imageUrl;
+    private RecipeVisibility visibility;
     private List<IngredientItemDto> ingredients;
     private BigDecimal totalCalories;
     private BigDecimal totalFats;
     private BigDecimal totalProteins;
     private BigDecimal totalCarbs;
 
-    // Вложенный класс — именно он и есть IngredientItemDto
     @Data
     public static class IngredientItemDto {
         private String name;
@@ -28,4 +29,3 @@ public class RecipeSummaryDto {
         private double itemCalories;
     }
 }
-
