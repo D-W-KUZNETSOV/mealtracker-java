@@ -20,6 +20,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+
+import java.time.LocalDate;
+
 import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -79,9 +82,12 @@ class AuthControllerTest {
         request.setUsername("newuser");
         request.setPassword("pass1234");
         request.setEmail("new@example.com");
+        request.setDateOfBirth(LocalDate.of(1995, 5, 20));
 
         when(userDetailsService.loadUserByUsername("newuser")).thenReturn(userDetails);
+        when(userDetails.getUsername()).thenReturn("newuser");           // ← добавить
         when(jwtService.generateToken(userDetails)).thenReturn("jwt-token-123");
+        when(jwtService.getExpirationSeconds()).thenReturn(86400L);      // ← если ты добавил expiresIn
 
         ResponseEntity<AuthResponse> response = authController.register(request);
 
@@ -89,6 +95,8 @@ class AuthControllerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getToken()).isEqualTo("jwt-token-123");
         assertThat(response.getBody().getType()).isEqualTo("Bearer");
+        assertThat(response.getBody().getUsername()).isEqualTo("newuser");  // ← эта строка падала
+        assertThat(response.getBody().getExpiresIn()).isEqualTo(86400L);    // ← если добавил
 
         verify(userService).registerUser(request);
     }
