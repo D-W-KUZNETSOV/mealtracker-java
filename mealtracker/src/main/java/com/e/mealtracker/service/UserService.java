@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.e.mealtracker.exception.UserNotFoundException;
 
 @Service
 @RequiredArgsConstructor
@@ -42,7 +43,7 @@ public class UserService {
 
     public User findByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден: " + username));
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден: " + username));
     }
 
     public void save(User user) {
