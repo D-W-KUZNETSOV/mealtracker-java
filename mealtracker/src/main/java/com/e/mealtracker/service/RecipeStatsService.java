@@ -7,7 +7,7 @@ import com.e.mealtracker.dto.RecipeStatsDto;
 import com.e.mealtracker.repository.RecipeIngredientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,6 +17,7 @@ public class RecipeStatsService {
 
     private final RecipeIngredientRepository recipeIngredientRepo;
 
+    @Transactional(readOnly = true)
     public RecipeStatsDto calculateStatsForRecipe(Long recipeId) {
         // Получаем все связи «рецепт–ингредиент» для этого рецепта
         List<RecipeIngredient> links = recipeIngredientRepo.findAllByRecipeId(recipeId);
