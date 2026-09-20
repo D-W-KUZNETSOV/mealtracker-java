@@ -1,9 +1,7 @@
 package com.e.mealtracker.controller;
 
-import com.e.mealtracker.dto.ApiResponse;
-import com.e.mealtracker.dto.AuthResponse;
-import com.e.mealtracker.dto.LoginRequest;
-import com.e.mealtracker.dto.RegisterRequest;
+import com.e.mealtracker.dto.*;
+import com.e.mealtracker.entity.User;
 import com.e.mealtracker.security.JwtService;
 import com.e.mealtracker.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +14,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.userdetails.UserDetailsService;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -25,6 +24,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserService userService;
+    private final UserDetailsService userDetailsService;
 
     /**
      * Аутентифицирует пользователя по логину и паролю.
@@ -43,16 +43,29 @@ public class AuthController {
     }
 
     /**
-     * Регистрирует нового пользователя.
-     * Принимает валидированный RegisterRequest (username, password, email).
-     * Возвращает 201 Created с ApiResponse.
+     * Регистрирует нового пользователя и сразу возвращает JWT-токен,
+     * чтобы фронт не делал отдельный запрос на логин.
+     * Возвращает 201 Created с AuthResponse { token, type }.
      */
     @PostMapping("/register")
     @Operation(summary = "Регистрация нового пользователя")
-    public ResponseEntity<ApiResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         userService.registerUser(request);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
+        String token = jwtService.generateToken(userDetails);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse("SUCCESS", "Пользователь успешно создан"));
+                .body(new AuthResponse(token, "Bearer"));
+    }
+    /**
+     * Возвращает данные текущего аутентифицированного пользователя.
+     * Используется фронтом при загрузке страницы, чтобы узнать, кто залогинен.
+     * Требует валидный JWT в заголовке Authorization.
+     */
+    @GetMapping("/me")
+    @Operation(summary = "Получить данные текущего пользователя")
+    public ResponseEntity<UserResponse> me(Authentication authentication) {
+        User user = userService.findByUsername(authentication.getName());
+        return ResponseEntity.ok(UserResponse.fromEntity(user));
     }
 }
 
