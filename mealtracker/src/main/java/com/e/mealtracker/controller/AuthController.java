@@ -28,9 +28,8 @@ public class AuthController {
 
     /**
      * Аутентифицирует пользователя по логину и паролю.
-     * Принимает LoginRequest с username и password, проверяет учётные данные
-     * через AuthenticationManager и при успехе генерирует JWT-токен.
-     * Возвращает токен в виде строки (200 OK).
+     * При успехе возвращает JWT-токен в структурированном виде
+     * { "token": "...", "type": "Bearer" }.
      */
     @PostMapping("/login")
     @Operation(summary = "Вход для пользователя")
@@ -45,15 +44,15 @@ public class AuthController {
 
     /**
      * Регистрирует нового пользователя.
-     * Принимает валидированный RegisterRequest (username, password, email и т.д.),
-     * передаёт его в UserService для создания учётной записи.
-     * Возвращает сообщение об успехе (200 OK).
+     * Принимает валидированный RegisterRequest (username, password, email).
+     * Возвращает 201 Created с ApiResponse.
      */
     @PostMapping("/register")
     @Operation(summary = "Регистрация нового пользователя")
     public ResponseEntity<ApiResponse> register(@Valid @RequestBody RegisterRequest request) {
         userService.registerUser(request);
-        return ResponseEntity.ok(new ApiResponse("SUCCESS", "Пользователь успешно создан"));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse("SUCCESS", "Пользователь успешно создан"));
     }
 }
 
