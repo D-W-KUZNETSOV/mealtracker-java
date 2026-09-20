@@ -1,9 +1,7 @@
 package com.e.mealtracker.controller;
 
-import com.e.mealtracker.dto.ApiResponse;
-import com.e.mealtracker.dto.AuthResponse;
-import com.e.mealtracker.dto.LoginRequest;
-import com.e.mealtracker.dto.RegisterRequest;
+import com.e.mealtracker.dto.*;
+import com.e.mealtracker.entity.User;
 import com.e.mealtracker.security.JwtService;
 import com.e.mealtracker.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -53,6 +51,17 @@ public class AuthController {
         userService.registerUser(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse("SUCCESS", "Пользователь успешно создан"));
+    }
+    /**
+     * Возвращает данные текущего аутентифицированного пользователя.
+     * Используется фронтом при загрузке страницы, чтобы узнать, кто залогинен.
+     * Требует валидный JWT в заголовке Authorization.
+     */
+    @GetMapping("/me")
+    @Operation(summary = "Получить данные текущего пользователя")
+    public ResponseEntity<UserResponse> me(Authentication authentication) {
+        User user = userService.findByUsername(authentication.getName());
+        return ResponseEntity.ok(UserResponse.fromEntity(user));
     }
 }
 
