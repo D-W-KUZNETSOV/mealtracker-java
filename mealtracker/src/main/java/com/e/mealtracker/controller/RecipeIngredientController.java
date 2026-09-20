@@ -2,6 +2,8 @@ package com.e.mealtracker.controller;
 
 import com.e.mealtracker.dto.RecipeIngredientInput;
 import com.e.mealtracker.service.RecipeIngredientService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,16 +11,18 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/recipes/{recipeId}/ingredients")
+@SecurityRequirement(name = "BearerAuth")
 public class RecipeIngredientController {
 
     private final RecipeIngredientService service;
 
     /**
-     * Добавить ингредиент в рецепт с весом.
-     * POST /api/recipes/1/ingredients
-     * Body: {"ingredientId": 1, "quantityGrams": 200}
+     * Добавляет ингредиент в рецепт с указанным весом (в граммах).
+     * Принимает ID рецепта из пути и DTO с ingredientId и quantityGrams из тела запроса.
+     * Возвращает простое сообщение об успехе (200 OK).
      */
     @PostMapping
+    @Operation(summary = "Добавить ингредиент в рецепт")
     public ResponseEntity<String> addIngredient(
             @PathVariable Long recipeId,
             @RequestBody RecipeIngredientInput input) {
@@ -27,11 +31,13 @@ public class RecipeIngredientController {
     }
 
     /**
-     * Обновить вес ингредиента в рецепте.
-     * PUT /api/recipes/1/ingredients/1
-     * Body: {"ingredientId": 1, "quantityGrams": 180}
+     * Обновляет вес ингредиента в рецепте.
+     * Проверяет, что ID ингредиента в URL совпадает с ID в теле запроса.
+     * При несовпадении возвращает 400 Bad Request.
+     * При успехе обновляет вес через сервис и возвращает сообщение (200 OK).
      */
     @PutMapping("/{ingredientId}")
+    @Operation(summary = "Обновить вес ингредиента в рецепте")
     public ResponseEntity<String> updateWeight(
             @PathVariable Long recipeId,
             @PathVariable Long ingredientId,
@@ -46,4 +52,5 @@ public class RecipeIngredientController {
         return ResponseEntity.ok("Вес обновлён");
     }
 }
+
 

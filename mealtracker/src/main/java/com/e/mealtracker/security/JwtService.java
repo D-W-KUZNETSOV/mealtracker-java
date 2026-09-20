@@ -27,16 +27,21 @@ public class JwtService {
 
     @PostConstruct
     private void init() {
+        byte[] keyBytes;
         try {
-            byte[] keyBytes = Decoders.BASE64URL.decode(secret);
-            if (keyBytes.length < 32) {
-                log.warn("JWT secret key is shorter than 32 bytes. This is insecure!");
+            keyBytes = Decoders.BASE64URL.decode(secret);
+        } catch (Exception e1) {
+            log.warn("JWT secret is not base64url, falling back to BASE64");
+            try {
+                keyBytes = Decoders.BASE64.decode(secret);
+            } catch (Exception e2) {
+                throw new IllegalStateException("JWT secret is invalid", e2);
             }
-            this.signingKey = Keys.hmacShaKeyFor(keyBytes);
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid JWT secret: not a valid Base64URL string. Check .env", e);
-            throw new IllegalStateException("JWT secret is not valid Base64URL", e);
         }
+        if (keyBytes.length < 32) {
+            log.warn("JWT secret key is shorter than 32 bytes. This is insecure!");
+        }
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
     // Теперь метод возвращает SecretKey — это то, что хочет verifyWith()

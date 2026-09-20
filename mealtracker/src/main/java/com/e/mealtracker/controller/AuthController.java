@@ -1,5 +1,7 @@
 package com.e.mealtracker.controller;
 
+import com.e.mealtracker.dto.ApiResponse;
+import com.e.mealtracker.dto.AuthResponse;
 import com.e.mealtracker.dto.LoginRequest;
 import com.e.mealtracker.dto.RegisterRequest;
 import com.e.mealtracker.security.JwtService;
@@ -24,24 +26,35 @@ public class AuthController {
     private final JwtService jwtService;
     private final UserService userService;
 
+    /**
+     * Аутентифицирует пользователя по логину и паролю.
+     * При успехе возвращает JWT-токен в структурированном виде
+     * { "token": "...", "type": "Bearer" }.
+     */
     @PostMapping("/login")
     @Operation(summary = "Вход для пользователя")
-
-    public ResponseEntity<String> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String token = jwtService.generateToken(userDetails);
-        return ResponseEntity.ok(token);
+        return ResponseEntity.ok(new AuthResponse(token, "Bearer"));
     }
 
+    /**
+     * Регистрирует нового пользователя.
+     * Принимает валидированный RegisterRequest (username, password, email).
+     * Возвращает 201 Created с ApiResponse.
+     */
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
-        // Вызываем НОВЫЙ метод сервиса, передавая весь DTO
+    @Operation(summary = "Регистрация нового пользователя")
+    public ResponseEntity<ApiResponse> register(@Valid @RequestBody RegisterRequest request) {
         userService.registerUser(request);
-        return ResponseEntity.ok().body("Пользователь успешно создан");
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse("SUCCESS", "Пользователь успешно создан"));
     }
 }
+
 
 
