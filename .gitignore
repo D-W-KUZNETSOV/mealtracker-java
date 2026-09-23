@@ -33,3 +33,14 @@ pom.xml.versionsBackup
 pom.xml.next
 release.properties
 buildNumber.properties
+
+# User uploads
+uploads/
+
+# IDE
+.idea/
+*.iml
+
+# Build
+target/
+mealtracker/target/

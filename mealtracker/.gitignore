@@ -65,3 +65,6 @@ buildNumber.properties
 
 # Test outputs
 test-output/
+
+# User uploads
+uploads/
