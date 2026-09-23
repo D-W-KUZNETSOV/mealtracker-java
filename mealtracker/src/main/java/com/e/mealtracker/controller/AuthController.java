@@ -39,7 +39,12 @@ public class AuthController {
         );
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String token = jwtService.generateToken(userDetails);
-        return ResponseEntity.ok(new AuthResponse(token, "Bearer"));
+        return ResponseEntity.ok(new AuthResponse(
+                token,
+                "Bearer",
+                userDetails.getUsername(),
+                jwtService.getExpirationSeconds()
+        ));
     }
 
     /**
@@ -54,7 +59,12 @@ public class AuthController {
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
         String token = jwtService.generateToken(userDetails);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new AuthResponse(token, "Bearer"));
+                .body(new AuthResponse(
+                        token,
+                        "Bearer",
+                        userDetails.getUsername(),
+                        jwtService.getExpirationSeconds()
+                ));
     }
     /**
      * Возвращает данные текущего аутентифицированного пользователя.

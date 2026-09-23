@@ -23,6 +23,9 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String secret;
 
+    @Value("${jwt.expiration-ms:86400000}")
+    private long expirationMs;   // 24 часа по умолчанию
+
     private SecretKey signingKey; // Было Key, стало SecretKey
 
     @PostConstruct
@@ -53,8 +56,8 @@ public class JwtService {
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 86_400_000L))
-                .signWith(getSigningKey()) // signWith тоже отлично принимает SecretKey
+                .expiration(new Date(System.currentTimeMillis() + expirationMs))
+                .signWith(getSigningKey())
                 .compact();
     }
 
@@ -91,6 +94,13 @@ public class JwtService {
         result.put("exp", claims.getExpiration());
         result.put("iat", claims.getIssuedAt());
         return result;
+    }
+    /**
+     * Возвращает время жизни токена в секундах.
+     * Используется фронтом, чтобы знать, когда токен истечёт.
+     */
+    public long getExpirationSeconds() {
+        return expirationMs / 1000;
     }
 }
 

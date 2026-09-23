@@ -1,0 +1,13 @@
+meta:
+  environment: jvm
+  toolchain:
+    name: maven
+    version: 17
+
+build:
+  args: -Dserver.port=80
+
+run:
+  jarName: mealtracker/target/mealtracker-0.0.1-SNAPSHOT.jar
+  containerPort: 80
+  persistenceMount: /data
