@@ -25,8 +25,12 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/images/**")
                 .addResourceLocations(location);
 
-        // ✅ ВОТ ЭТО ДОБАВЬ: явная регистрация Swagger UI
+        // ✅ ИСПРАВЛЕННЫЙ путь для Swagger UI
         registry.addResourceHandler("/swagger-ui/**")
                 .addResourceLocations("classpath:/META-INF/resources/webjars/swagger-ui/");
+
+        // ✅ Дополнительно — для webjars (иногда Swagger UI грузит их оттуда)
+        registry.addResourceHandler("/webjars/**")
+                .addResourceLocations("classpath:/META-INF/resources/webjars/");
     }
 }
