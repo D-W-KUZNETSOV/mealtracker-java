@@ -11,26 +11,17 @@ import java.nio.file.Paths;
 
 @Slf4j
 @Configuration
-public class WebConfig implements WebMvcConfigurer {
+public class ImageConfig implements WebMvcConfigurer {
 
     @Value("${upload.path}")
     private String uploadPath;
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Твоя раздача картинок
         Path absolutePath = Paths.get(uploadPath).toAbsolutePath().normalize();
         String location = absolutePath.toUri().toString();
         log.info("Раздача картинок: /images/** → {}", location);
         registry.addResourceHandler("/images/**")
                 .addResourceLocations(location);
-
-        // ✅ ИСПРАВЛЕННЫЙ путь для Swagger UI
-        registry.addResourceHandler("/swagger-ui/**")
-                .addResourceLocations("classpath:/META-INF/resources/webjars/swagger-ui/");
-
-        // ✅ Дополнительно — для webjars (иногда Swagger UI грузит их оттуда)
-        registry.addResourceHandler("/webjars/**")
-                .addResourceLocations("classpath:/META-INF/resources/webjars/");
     }
 }
