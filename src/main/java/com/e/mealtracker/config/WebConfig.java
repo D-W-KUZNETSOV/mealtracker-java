@@ -18,12 +18,15 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // Твоя раздача картинок
         Path absolutePath = Paths.get(uploadPath).toAbsolutePath().normalize();
-        String location = absolutePath.toUri().toString();  // "file:///abs/path/"
-
+        String location = absolutePath.toUri().toString();
         log.info("Раздача картинок: /images/** → {}", location);
-
         registry.addResourceHandler("/images/**")
                 .addResourceLocations(location);
+
+        // ✅ ВОТ ЭТО ДОБАВЬ: явная регистрация Swagger UI
+        registry.addResourceHandler("/swagger-ui/**")
+                .addResourceLocations("classpath:/META-INF/resources/webjars/swagger-ui/");
     }
 }
