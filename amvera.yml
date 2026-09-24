@@ -5,7 +5,7 @@
     version: 17
 
 build:
-  args: -Dserver.port=80 package
+  additionalCommands: mvn clean package -DskipTests
 
 run:
   jarName: mealtracker-0.0.1-SNAPSHOT.jar
