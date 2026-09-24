@@ -7,7 +7,6 @@ import org.springframework.http.HttpMethod;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -104,13 +103,13 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    @Bean
-    public ServletRegistrationBean<org.h2.server.web.JakartaWebServlet> h2ConsoleServlet() {
-        ServletRegistrationBean<org.h2.server.web.JakartaWebServlet> bean =
-                new ServletRegistrationBean<>(new org.h2.server.web.JakartaWebServlet(), "/h2-console/*");
-        bean.addInitParameter("webAllowOthers", "true");
-        return bean;
-    }
+//    @Bean
+//    public ServletRegistrationBean<org.h2.server.web.JakartaWebServlet> h2ConsoleServlet() {
+//        ServletRegistrationBean<org.h2.server.web.JakartaWebServlet> bean =
+//                new ServletRegistrationBean<>(new org.h2.server.web.JakartaWebServlet(), "/h2-console/*");
+//        bean.addInitParameter("webAllowOthers", "true");
+//        return bean;
+//    }
 
     @Bean
     public AuthenticationEntryPoint authenticationEntryPoint() {
