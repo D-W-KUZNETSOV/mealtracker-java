@@ -5,7 +5,7 @@
     version: 17
 
 build:
-  additionalCommands: mvn clean package -DskipTests
+  args: -DskipTests
 
 run:
   jarName: mealtracker-0.0.1-SNAPSHOT.jar
