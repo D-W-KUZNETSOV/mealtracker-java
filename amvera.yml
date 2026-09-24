@@ -5,7 +5,7 @@
     version: 17
 
 build:
-  args: -DskipTests
+  args: package -DskipTests
 
 run:
   jarName: mealtracker-0.0.1-SNAPSHOT.jar
