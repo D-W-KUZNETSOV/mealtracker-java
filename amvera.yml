@@ -4,9 +4,6 @@
     name: maven
     version: 17
 
-build:
-  args: package -DskipTests
-
 run:
   jarName: mealtracker-0.0.1-SNAPSHOT.jar
   containerPort: 80
