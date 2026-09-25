@@ -4,6 +4,7 @@ import com.e.mealtracker.dto.RegisterRequest;
 import com.e.mealtracker.entity.Role;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.entity.UserProfile;
+import com.e.mealtracker.exception.UserAlreadyExistsException;
 import com.e.mealtracker.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +24,12 @@ public class UserService {
     public void registerUser(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("Пользователь уже существует");
+        }if (userRepository.existsByUsername(request.getUsername())) {
+            throw new UserAlreadyExistsException("Пользователь с таким именем уже существует");
+        }
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new UserAlreadyExistsException("Пользователь с таким email уже зарегистрирован");
         }
 
         User user = new User();
