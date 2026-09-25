@@ -15,7 +15,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-
+import com.e.mealtracker.exception.UserAlreadyExistsException;
 import java.time.Instant;
 
 @Slf4j
@@ -111,33 +111,18 @@ public class GlobalExceptionHandler {
 
     // ================== 409 CONFLICT ==================
 
-    // ================== 409 CONFLICT ==================
-
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex,
                                                         HttpServletRequest request) {
-        String rootMessage = ex.getMostSpecificCause().getMessage();
         log.warn("Data integrity violation at {}: {}",
-                request.getRequestURI(), rootMessage);
-
-        // Определяем, что именно нарушено
-        String userMessage = "Нарушение целостности данных";
-        String code = "DATA_INTEGRITY_VIOLATION";
-
-        String lower = rootMessage != null ? rootMessage.toLowerCase() : "";
-
-        if (lower.contains("username") || lower.contains("users_username")) {
-            userMessage = "Пользователь с таким именем уже существует";
-            code = "USERNAME_ALREADY_EXISTS";
-        } else if (lower.contains("email") || lower.contains("users_email")) {
-            userMessage = "Пользователь с таким email уже зарегистрирован";
-            code = "EMAIL_ALREADY_EXISTS";
-        } else if (lower.contains("duplicate")) {
-            userMessage = "Такая запись уже существует";
-            code = "DUPLICATE_RECORD";
-        }
-
-        return build(HttpStatus.CONFLICT, code, userMessage, request);
+                request.getRequestURI(), ex.getMostSpecificCause().getMessage());
+        return build(HttpStatus.CONFLICT, "DATA_INTEGRITY_VIOLATION",
+                "Нарушение целостности данных (возможно, дубликат или связанные записи)", request);
+    }
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ApiError> handleUserAlreadyExists(UserAlreadyExistsException ex,
+                                                            HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, "USER_ALREADY_EXISTS", ex.getMessage(), request);
     }
 
     // ================== 500 INTERNAL ==================
@@ -162,11 +147,6 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return ResponseEntity.status(status).body(error);
-    }
-    @ExceptionHandler(UserAlreadyExistsException.class)
-    public ResponseEntity<ApiError> handleUserAlreadyExists(UserAlreadyExistsException ex,
-                                                            HttpServletRequest request) {
-        return build(HttpStatus.CONFLICT, "USER_ALREADY_EXISTS", ex.getMessage(), request);
     }
 }
 
