@@ -19,17 +19,15 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // ВАЖНО: здесь в скобках указан параметр RegisterRequest request
+    // Р’РђР–РќРћ: Р·РґРµСЃСЊ РІ СЃРєРѕР±РєР°С… СѓРєР°Р·Р°РЅ РїР°СЂР°РјРµС‚СЂ RegisterRequest request
     @Transactional
     public void registerUser(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("Пользователь уже существует");
-        }if (userRepository.existsByUsername(request.getUsername())) {
-            throw new UserAlreadyExistsException("Пользователь с таким именем уже существует");
+            throw new UserAlreadyExistsException("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚");
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new UserAlreadyExistsException("Пользователь с таким email уже зарегистрирован");
+            throw new UserAlreadyExistsException("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј email СѓР¶Рµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ");
         }
 
         User user = new User();
@@ -38,7 +36,7 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setRole(Role.USER);
 
-        // Создаём профиль сразу с датой рождения
+        // РЎРѕР·РґР°С‘Рј РїСЂРѕС„РёР»СЊ СЃСЂР°Р·Сѓ СЃ РґР°С‚РѕР№ СЂРѕР¶РґРµРЅРёСЏ
         UserProfile profile = new UserProfile();
         profile.setDateOfBirth(request.getDateOfBirth());
         profile.setUser(user);
@@ -50,7 +48,7 @@ public class UserService {
 
     public User findByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден: " + username));
+                .orElseThrow(() -> new UserNotFoundException("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ: " + username));
     }
 
     public void save(User user) {
