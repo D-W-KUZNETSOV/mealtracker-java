@@ -1,7 +1,6 @@
 package com.e.mealtracker.domain;
 
 import com.e.mealtracker.entity.User;
-import com.e.mealtracker.util.ActivityLevel;   // ← добавить импорт
 import com.e.mealtracker.util.GoalType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -34,10 +33,7 @@ public class UserGoals {
     @Column
     private Integer targetCalories;
 
-    // ✅ ВЕРНУЛИ
-    @Enumerated(EnumType.STRING)
-    @Column(name = "activity_level", nullable = false, length = 20)
-    private ActivityLevel activityLevel = ActivityLevel.SEDENTARY;
+
 
     @Column
     private LocalDateTime createdAt;
@@ -45,7 +41,6 @@ public class UserGoals {
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();
-        if (activityLevel == null) activityLevel = ActivityLevel.SEDENTARY;
         if (goalType == null) goalType = GoalType.MAINTAIN;   // ← добавили
     }
     @Enumerated(EnumType.STRING)

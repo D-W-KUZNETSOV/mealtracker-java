@@ -7,6 +7,7 @@ import com.e.mealtracker.domain.RecipeIngredient;
 import com.e.mealtracker.domain.UserGoals;
 import com.e.mealtracker.dto.DailyStatsDto;
 import com.e.mealtracker.dto.RecipePortionRequest;
+import com.e.mealtracker.dto.TargetProteinResponse;
 import com.e.mealtracker.entity.Role;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.exception.InvalidPortionWeightException;
@@ -17,6 +18,7 @@ import com.e.mealtracker.repository.RecipeRepository;
 import com.e.mealtracker.repository.UserGoalsRepository;
 import com.e.mealtracker.repository.UserRepository;
 import com.e.mealtracker.util.ActivityLevel;
+import com.e.mealtracker.util.GoalType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +27,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
+import static org.assertj.core.api.Assertions.within;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -45,7 +47,7 @@ class StatsServiceTest {
     @Mock private FoodEntryRepository foodEntryRepository;
     @Mock private RecipeRepository recipeRepository;
     @Mock private UserRepository userRepository;
-    @Mock private UserGoalsRepository userGoalsRepository;
+    @Mock private NutritionCalculationService nutritionCalculationService;
 
     @InjectMocks
     private StatsService statsService;
@@ -323,7 +325,8 @@ class StatsServiceTest {
         log.setCarbs(new BigDecimal("60.00"));
 
         when(dailyLogRepository.findByUserAndLogDate(user, today)).thenReturn(Optional.of(log));
-        when(userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user)).thenReturn(Optional.empty());
+        when(nutritionCalculationService.calculateTargetProteinFromGoals(user))
+                .thenReturn(new TargetProteinResponse(0.0, 0.0));
 
         DailyStatsDto stats = statsService.getTodayStats(user);
 
@@ -336,31 +339,30 @@ class StatsServiceTest {
     }
 
     @Test
-    @DisplayName("getTodayStats: с goals → targetProtein = вес * proteinPerKg, прогресс посчитан")
+    @DisplayName("getTodayStats: с goals → targetProtein берётся из NutritionCalculationService")
     void shouldReturnStatsWithGoals() {
         LocalDate today = LocalDate.now();
         DailyLog log = dailyLog(100L, user, today);
         log.setProtein(new BigDecimal("50.00"));
 
-        UserGoals goals = new UserGoals();
-        goals.setId(1L);
-        goals.setUser(user);
-        goals.setCurrentWeightKg(80.0);
-        goals.setProteinPerKg(2.0);
-        goals.setActivityLevel(ActivityLevel.MODERATE);
 
         when(dailyLogRepository.findByUserAndLogDate(user, today)).thenReturn(Optional.of(log));
-        when(userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user)).thenReturn(Optional.of(goals));
+        when(nutritionCalculationService.calculateTargetProteinFromGoals(user))
+                .thenReturn(new TargetProteinResponse(0.0, 0.0));
+        when(nutritionCalculationService.calculateTargetProteinFromGoals(user))
+                .thenReturn(new TargetProteinResponse(81.0, 129.6));  // дефолт
+        when(nutritionCalculationService.calculateTargetProteinFromGoals(user))
+                .thenReturn(new TargetProteinResponse(80.0, 128.0));
 
         DailyStatsDto stats = statsService.getTodayStats(user);
 
-        // targetProtein = 80 * 2 = 160; progress = 50 / 160 * 100 = 31.25
-        assertThat(stats.getTargetProtein()).isEqualTo(160.0);
-        assertThat(stats.getProteinProgressPercent()).isEqualTo(31.25);
+        // targetProtein = 128; progress = 50 / 128 * 100 = 39.06
+        assertThat(stats.getTargetProtein()).isEqualTo(128.0);
+        assertThat(stats.getProteinProgressPercent()).isCloseTo(39.06, within(0.1));
     }
 
     @Test
-    @DisplayName("getTodayStats: goals с weight=0 → targetProtein=null, progress=null")
+    @DisplayName("getTodayStats: с goals → targetProtein=null если сервис вернул 0")
     void shouldReturnNullTargetWhenWeightIsZero() {
         LocalDate today = LocalDate.now();
         DailyLog log = dailyLog(100L, user, today);
@@ -369,17 +371,19 @@ class StatsServiceTest {
         goals.setId(1L);
         goals.setUser(user);
         goals.setCurrentWeightKg(0.0);
-        goals.setProteinPerKg(2.0);
+        goals.setGoalType(GoalType.MAINTAIN);
 
         when(dailyLogRepository.findByUserAndLogDate(user, today)).thenReturn(Optional.of(log));
-        when(userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user)).thenReturn(Optional.of(goals));
+        when(nutritionCalculationService.calculateTargetProteinFromGoals(user))
+                .thenReturn(new TargetProteinResponse(0.0, 0.0));
+        when(nutritionCalculationService.calculateTargetProteinFromGoals(user))
+                .thenReturn(new TargetProteinResponse(0.0, 0.0));
 
         DailyStatsDto stats = statsService.getTodayStats(user);
 
         assertThat(stats.getTargetProtein()).isNull();
         assertThat(stats.getProteinProgressPercent()).isNull();
     }
-
     @Test
     @DisplayName("getStatsByDate: возвращает стату за указанную дату")
     void shouldReturnStatsByDate() {
@@ -388,7 +392,8 @@ class StatsServiceTest {
         log.setCalories(new BigDecimal("1234.50"));
 
         when(dailyLogRepository.findByUserAndLogDate(user, date)).thenReturn(Optional.of(log));
-        when(userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user)).thenReturn(Optional.empty());
+        when(nutritionCalculationService.calculateTargetProteinFromGoals(user))
+                .thenReturn(new TargetProteinResponse(0.0, 0.0));
 
         DailyStatsDto stats = statsService.getStatsByDate(date, user);
 

@@ -42,10 +42,9 @@ public class NutritionController {
                 request.getCurrentWeightKg(),
                 request.getProteinPerKg(),
                 request.getTargetCalories(),
-                request.getActivityLevel(),
-                request.getGoalType(),                  // ← новое
-                request.getTargetProteinOverride(),     // ← новое
-                request.getTargetCaloriesOverride()     // ← новое
+                request.getGoalType(),
+                request.getTargetProteinOverride(),
+                request.getTargetCaloriesOverride()
         );
         return ResponseEntity.ok(saved);
     }

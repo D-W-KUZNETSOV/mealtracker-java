@@ -3,6 +3,7 @@ package com.e.mealtracker.service;
 import com.e.mealtracker.domain.*;
 import com.e.mealtracker.dto.DailyStatsDto;
 import com.e.mealtracker.dto.RecipePortionRequest;
+import com.e.mealtracker.dto.TargetProteinResponse;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.exception.InvalidPortionWeightException;
 import com.e.mealtracker.exception.RecipeNotFoundException;
@@ -16,7 +17,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
+
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +27,8 @@ public class StatsService {
     private final FoodEntryRepository foodEntryRepository;
     private final RecipeRepository recipeRepository;
     private final UserRepository userRepository;
-    private final UserGoalsRepository userGoalsRepository;
+    private final NutritionCalculationService nutritionCalculationService;
+
 
     /**
      * Добавить порцию и вернуть статистику за сегодня.
@@ -168,19 +170,14 @@ public class StatsService {
                     return empty;
                 });
 
-        Optional<UserGoals> goalsOpt = userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user);
+        TargetProteinResponse proteinResp = nutritionCalculationService.calculateTargetProteinFromGoals(user);
 
         Double targetProtein = null;
         Double proteinProgressPercent = null;
 
-        if (goalsOpt.isPresent()) {
-            UserGoals goals = goalsOpt.get();
-            if (goals.getCurrentWeightKg() > 0 && goals.getProteinPerKg() > 0) {
-                targetProtein = goals.getCurrentWeightKg() * goals.getProteinPerKg();
-                if (targetProtein > 0) {
-                    proteinProgressPercent = (log.getProtein().doubleValue() / targetProtein) * 100.0;
-                }
-            }
+        if (proteinResp != null && proteinResp.targetProteinGramsPerDay() > 0) {
+            targetProtein = proteinResp.targetProteinGramsPerDay();
+            proteinProgressPercent = (log.getProtein().doubleValue() / targetProtein) * 100.0;
         }
 
         return new DailyStatsDto(

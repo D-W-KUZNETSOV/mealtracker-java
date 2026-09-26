@@ -30,10 +30,9 @@ public class NutritionCalculationService {
 
     @Transactional
     public UserGoalsDto setUserGoals(User user, double currentWeightKg, double proteinPerKg,
-                                     Integer targetCalories, ActivityLevel activityLevel,
+                                     Integer targetCalories,
                                      GoalType goalType, Double targetProteinOverride,
                                      Integer targetCaloriesOverride) {
-        if (activityLevel == null) activityLevel = ActivityLevel.SEDENTARY;
         if (goalType == null) goalType = GoalType.MAINTAIN;
 
         UserGoals goals = userGoalsRepository
@@ -47,7 +46,6 @@ public class NutritionCalculationService {
         goals.setCurrentWeightKg(currentWeightKg);
         goals.setProteinPerKg(proteinPerKg);
         goals.setTargetCalories(targetCalories);
-        goals.setActivityLevel(activityLevel);
         goals.setGoalType(goalType);
         goals.setTargetProteinOverride(targetProteinOverride);
         goals.setTargetCaloriesOverride(targetCaloriesOverride);
@@ -59,19 +57,12 @@ public class NutritionCalculationService {
         Optional<UserGoals> goalsOpt = userGoalsRepository.findFirstByUserOrderByCreatedAtDesc(user);
 
         double weightKg;
-        double proteinPerKg;
-        double activityMultiplier;
 
         if (goalsOpt.isPresent()) {
             UserGoals goals = goalsOpt.get();
             weightKg = goals.getCurrentWeightKg();
-            proteinPerKg = goals.getProteinPerKg();
-            // ✅ enum всегда не null благодаря @PrePersist и дефолту
-            activityMultiplier = goals.getActivityLevel().getMultiplier();
         } else {
             weightKg = 81.0;
-            proteinPerKg = 1.6;
-            activityMultiplier = ActivityLevel.SEDENTARY.getMultiplier();
         }
 
         double targetProtein;
@@ -84,7 +75,7 @@ public class NutritionCalculationService {
             } else {
                 // Авторасчёт по goalType
                 double perKg = switch (goals.getGoalType()) {
-                    case LOSE_WEIGHT -> 2.0;    // выше белок — сохранить мышцы
+                    case LOSE_WEIGHT -> 2.0;
                     case MAINTAIN -> 1.6;
                     case GAIN_MUSCLE -> 1.8;
                 };

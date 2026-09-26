@@ -1,6 +1,6 @@
 package com.e.mealtracker.dto;
 
-import com.e.mealtracker.util.ActivityLevel;
+
 import com.e.mealtracker.util.GoalType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
@@ -25,11 +25,7 @@ public class GoalsRequest {
             allowableValues = {"1500", "1800", "2000", "2200", "2500", "2800", "3000"})
     private Integer targetCalories;
 
-    @Schema(description = "Уровень физической активности",
-            example = "MODERATE",
-            required = true)
-    @NotNull(message = "Уровень активности обязателен")
-    private ActivityLevel activityLevel;
+
 
     @Schema(description = "Цель: похудение / поддержание / набор массы",
             example = "MAINTAIN",
@@ -69,13 +65,6 @@ public class GoalsRequest {
         this.targetCalories = targetCalories;
     }
 
-    public ActivityLevel getActivityLevel() {
-        return activityLevel;
-    }
-
-    public void setActivityLevel(ActivityLevel activityLevel) {
-        this.activityLevel = activityLevel;
-    }
 
     public GoalType getGoalType() { return goalType; }
     public void setGoalType(GoalType goalType) { this.goalType = goalType; }
