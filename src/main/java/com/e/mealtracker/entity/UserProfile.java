@@ -43,6 +43,9 @@ public class UserProfile {
 
     private LocalDate dateOfBirth;
 
+    @Column(name = "avatar_url", length = 512)
+    private String avatarUrl;
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

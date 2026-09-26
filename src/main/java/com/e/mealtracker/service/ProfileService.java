@@ -52,6 +52,9 @@ public class ProfileService {
         if (dto.getActivityLevel() != null) {
             profile.setActivityLevel(dto.getActivityLevel());
         }
+        if (dto.getAvatarUrl() != null) {
+            profile.setAvatarUrl(dto.getAvatarUrl());
+        }
 
         // ✅ страховка на случай, если поле null (старые записи / new UserProfile)
         if (profile.getActivityLevel() == null) {
@@ -78,6 +81,7 @@ public class ProfileService {
         dto.setGender(profile.getGender());
         // ✅ enum → enum, без конвертаций
         dto.setActivityLevel(profile.getActivityLevel());
+        dto.setAvatarUrl(profile.getAvatarUrl());
 
         if (profile.getDateOfBirth() != null) {
             dto.setAgeYears(AgeCalculator.calculateAge(profile.getDateOfBirth()));

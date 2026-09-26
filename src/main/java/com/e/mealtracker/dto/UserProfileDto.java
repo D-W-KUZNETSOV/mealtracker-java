@@ -22,5 +22,6 @@ public class UserProfileDto {
 
     private Integer ageYears;
     private BigDecimal bmi;
+    private String avatarUrl;
 }
 

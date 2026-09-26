@@ -30,5 +30,8 @@ public class UserProfileUpdateDto {
 
     @Schema(allowableValues = {"SEDENTARY", "LIGHT", "MODERATE", "HIGH", "VERY_HIGH"})
     private ActivityLevel activityLevel;
+
+    @Schema(description = "URL аватара (относительный путь /images/uuid.jpg)")
+    private String avatarUrl;
 }
 
