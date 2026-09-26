@@ -1,9 +1,11 @@
 package com.e.mealtracker.controller;
 
+import com.e.mealtracker.domain.UserGoals;
 import com.e.mealtracker.dto.UserProfileDto;
 import com.e.mealtracker.dto.UserProfileUpdateDto;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.entity.UserProfile;
+import com.e.mealtracker.repository.UserGoalsRepository;
 import com.e.mealtracker.service.NutritionCalculationService;
 import com.e.mealtracker.service.ProfileService;
 import com.e.mealtracker.service.UserService;
@@ -27,6 +29,7 @@ public class ProfileController {
     private final UserService userService;
     private final ProfileService profileService;
     private final NutritionCalculationService nutritionCalculationService;
+    private final UserGoalsRepository userGoalsRepository;
 
     /**
      * Возвращает расчётную дневную норму калорий для текущего пользователя.
@@ -34,11 +37,9 @@ public class ProfileController {
      * Результат — BigDecimal с количеством ккал (200 OK).
      */
     @GetMapping("/calories/daily")
-    @Operation(summary = "Получить дневную норму калорий текущего пользователя")
     public ResponseEntity<BigDecimal> getDailyCalories(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userService.findByUsername(userDetails.getUsername());
-        UserProfile profile = user.getProfile();
-        BigDecimal calories = nutritionCalculationService.calculateDailyCalories(profile);
+        BigDecimal calories = nutritionCalculationService.calculateDailyCaloriesForUser(user);
         return ResponseEntity.ok(calories);
     }
 

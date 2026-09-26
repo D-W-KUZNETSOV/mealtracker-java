@@ -1,6 +1,7 @@
 package com.e.mealtracker.dto;
 
 import com.e.mealtracker.util.ActivityLevel;
+import com.e.mealtracker.util.GoalType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -29,6 +30,19 @@ public class GoalsRequest {
             required = true)
     @NotNull(message = "Уровень активности обязателен")
     private ActivityLevel activityLevel;
+
+    @Schema(description = "Цель: похудение / поддержание / набор массы",
+            example = "MAINTAIN",
+            allowableValues = {"LOSE_WEIGHT", "MAINTAIN", "GAIN_MUSCLE"})
+    private GoalType goalType;
+
+    @Schema(description = "Ручная корректировка белка (г/день), null = авто",
+            example = "150")
+    private Double targetProteinOverride;
+
+    @Schema(description = "Ручная корректировка калорий (ккал/день), null = авто",
+            example = "2200")
+    private Integer targetCaloriesOverride;
 
     // Геттеры и сеттеры
     public Double getCurrentWeightKg() {
@@ -62,5 +76,14 @@ public class GoalsRequest {
     public void setActivityLevel(ActivityLevel activityLevel) {
         this.activityLevel = activityLevel;
     }
+
+    public GoalType getGoalType() { return goalType; }
+    public void setGoalType(GoalType goalType) { this.goalType = goalType; }
+
+    public Double getTargetProteinOverride() { return targetProteinOverride; }
+    public void setTargetProteinOverride(Double targetProteinOverride) { this.targetProteinOverride = targetProteinOverride; }
+
+    public Integer getTargetCaloriesOverride() { return targetCaloriesOverride; }
+    public void setTargetCaloriesOverride(Integer targetCaloriesOverride) { this.targetCaloriesOverride = targetCaloriesOverride; }
 }
 

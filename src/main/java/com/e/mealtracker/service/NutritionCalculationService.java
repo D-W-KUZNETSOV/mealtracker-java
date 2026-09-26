@@ -9,6 +9,7 @@ import com.e.mealtracker.repository.UserGoalsRepository;
 import com.e.mealtracker.util.ActivityLevel;
 import com.e.mealtracker.util.AgeCalculator;
 import com.e.mealtracker.util.Gender;
+import com.e.mealtracker.util.GoalType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,8 +30,11 @@ public class NutritionCalculationService {
 
     @Transactional
     public UserGoalsDto setUserGoals(User user, double currentWeightKg, double proteinPerKg,
-                                     Integer targetCalories, ActivityLevel activityLevel) {
+                                     Integer targetCalories, ActivityLevel activityLevel,
+                                     GoalType goalType, Double targetProteinOverride,
+                                     Integer targetCaloriesOverride) {
         if (activityLevel == null) activityLevel = ActivityLevel.SEDENTARY;
+        if (goalType == null) goalType = GoalType.MAINTAIN;
 
         UserGoals goals = userGoalsRepository
                 .findFirstByUserOrderByCreatedAtDesc(user)
@@ -44,6 +48,9 @@ public class NutritionCalculationService {
         goals.setProteinPerKg(proteinPerKg);
         goals.setTargetCalories(targetCalories);
         goals.setActivityLevel(activityLevel);
+        goals.setGoalType(goalType);
+        goals.setTargetProteinOverride(targetProteinOverride);
+        goals.setTargetCaloriesOverride(targetCaloriesOverride);
 
         return UserGoalsDto.fromEntity(userGoalsRepository.save(goals));
     }
@@ -67,7 +74,27 @@ public class NutritionCalculationService {
             activityMultiplier = ActivityLevel.SEDENTARY.getMultiplier();
         }
 
-        double targetProtein = weightKg * proteinPerKg * activityMultiplier;
+        double targetProtein;
+        if (goalsOpt.isPresent()) {
+            UserGoals goals = goalsOpt.get();
+
+            // Ручная корректировка — приоритет
+            if (goals.getTargetProteinOverride() != null) {
+                targetProtein = goals.getTargetProteinOverride();
+            } else {
+                // Авторасчёт по goalType
+                double perKg = switch (goals.getGoalType()) {
+                    case LOSE_WEIGHT -> 2.0;    // выше белок — сохранить мышцы
+                    case MAINTAIN -> 1.6;
+                    case GAIN_MUSCLE -> 1.8;
+                };
+                targetProtein = weightKg * perKg;
+            }
+        } else {
+            // Нет целей — дефолт (поддержание)
+            targetProtein = weightKg * 1.6;
+        }
+
         return new TargetProteinResponse(weightKg, targetProtein);
     }
 
@@ -76,7 +103,7 @@ public class NutritionCalculationService {
                 .map(UserGoalsDto::fromEntity);
     }
 
-    public BigDecimal calculateDailyCalories(UserProfile profile) {
+    public BigDecimal calculateDailyCalories(UserProfile profile, UserGoals goals) {
         if (profile == null) {
             log.warn("Профиль пользователя отсутствует");
             return BigDecimal.ZERO;
@@ -90,7 +117,6 @@ public class NutritionCalculationService {
             log.warn("Текущий вес не указан или некорректен: {}", currentWeight);
             return BigDecimal.ZERO;
         }
-
         if (profile.getDateOfBirth() == null) {
             log.warn("Дата рождения не указана для расчёта калорий");
             return BigDecimal.ZERO;
@@ -105,15 +131,11 @@ public class NutritionCalculationService {
         }
 
         Gender gender = profile.getGender();
-        if (gender == null) {
-            log.warn("Пол не указан для расчёта калорий");
-            return BigDecimal.ZERO;
-        }
-
         int age = AgeCalculator.calculateAge(profile.getDateOfBirth());
         int heightCm = profile.getHeightCm();
         double weightKg = currentWeight.doubleValue();
 
+        // BMR по формуле Миффлина–Сан Жеора (с полом)
         BigDecimal bmr;
         if (gender == Gender.MALE) {
             bmr = BigDecimal.valueOf(10 * weightKg)
@@ -127,15 +149,34 @@ public class NutritionCalculationService {
                     .subtract(BigDecimal.valueOf(161));
         }
 
+        // TDEE = BMR × коэффициент активности
         double multiplier = profile.getActivityLevel().getMultiplier();
         BigDecimal tdee = bmr.multiply(BigDecimal.valueOf(multiplier));
 
-        if (profile.getTargetWeightKg() != null
-                && profile.getTargetWeightKg().compareTo(currentWeight) < 0) {
-            tdee = tdee.subtract(BigDecimal.valueOf(500));
+        // ✅ Сначала override (ручная корректировка)
+        if (goals != null && goals.getTargetCaloriesOverride() != null) {
+            return BigDecimal.valueOf(goals.getTargetCaloriesOverride());
+        }
+
+        // ✅ Потом goalType
+        GoalType goalType = (goals != null && goals.getGoalType() != null)
+                ? goals.getGoalType()
+                : GoalType.MAINTAIN;
+
+        switch (goalType) {
+            case LOSE_WEIGHT -> tdee = tdee.multiply(BigDecimal.valueOf(0.8));   // −20%
+            case GAIN_MUSCLE -> tdee = tdee.multiply(BigDecimal.valueOf(1.15));  // +15%
+            case MAINTAIN -> { /* без изменений */ }
         }
 
         return tdee.setScale(0, RoundingMode.HALF_UP);
+    }
+    public BigDecimal calculateDailyCaloriesForUser(User user) {
+        UserProfile profile = user.getProfile();
+        UserGoals goals = userGoalsRepository
+                .findFirstByUserOrderByCreatedAtDesc(user)
+                .orElse(null);
+        return calculateDailyCalories(profile, goals);
     }
 }
 
