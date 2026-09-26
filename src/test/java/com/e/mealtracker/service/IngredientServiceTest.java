@@ -154,19 +154,20 @@ class IngredientServiceTest {
     // ============================================================
 
     @Test
-    @DisplayName("findAllByUsername: пробрасывает вызов в findAllForUser")
-    void shouldReturnAllForUser() {
+    @DisplayName("findAllByUsername: возвращает только ингредиенты пользователя")
+    void shouldReturnUserIngredients() {
         List<Ingredient> list = List.of(
                 ingredient(1L, "A", "dmitriy", 1.0, 1.0, 1.0),
                 ingredient(2L, "B", "dmitriy", 2.0, 2.0, 2.0)
         );
-        when(ingredientRepository.findAllForUser("dmitriy")).thenReturn(list);
+        when(ingredientRepository.findAllByUsername("dmitriy")).thenReturn(list);
 
         List<Ingredient> result = ingredientService.findAllByUsername("dmitriy");
 
         assertThat(result).hasSize(2);
         assertThat(result).extracting(Ingredient::getName).containsExactly("A", "B");
-        verify(ingredientRepository).findAllForUser("dmitriy");
+        verify(ingredientRepository).findAllByUsername("dmitriy");
+        verify(ingredientRepository, never()).findAllForUser(anyString());
     }
 
     // ============================================================
