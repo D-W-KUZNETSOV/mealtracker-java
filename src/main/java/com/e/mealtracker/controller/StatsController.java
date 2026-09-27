@@ -78,5 +78,15 @@ public class StatsController {
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "Пользователь не найден: " + userDetails.getUsername()));
     }
+
+    @DeleteMapping("/entries/{entryId}")
+    @Operation(summary = "Удалить запись из дневника")
+    public ResponseEntity<Void> deleteEntry(
+            @PathVariable Long entryId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = getUser(userDetails);
+        statsService.deleteEntry(entryId, user);
+        return ResponseEntity.noContent().build();
+    }
 }
 

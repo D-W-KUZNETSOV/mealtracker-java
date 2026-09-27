@@ -2,6 +2,7 @@ package com.e.mealtracker.service;
 
 import com.e.mealtracker.domain.*;
 import com.e.mealtracker.dto.DailyStatsDto;
+import com.e.mealtracker.dto.FoodEntryDto;
 import com.e.mealtracker.dto.RecipePortionRequest;
 import com.e.mealtracker.dto.TargetProteinResponse;
 import com.e.mealtracker.entity.User;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -166,8 +168,6 @@ public class StatsService {
                     DailyLog empty = new DailyLog();
                     empty.setUser(user);
                     empty.setLogDate(date);
-                    // Можно сохранить пустой лог, если хочешь, или оставить transient:
-                    // return dailyLogRepository.save(empty);
                     return empty;
                 });
 
@@ -181,14 +181,37 @@ public class StatsService {
             proteinProgressPercent = (log.getProtein().doubleValue() / targetProtein) * 100.0;
         }
 
+        // Подгружаем записи за день (если log сохранён — есть id)
+        List<FoodEntryDto> entries = Collections.emptyList();
+        if (log.getId() != null) {
+            entries = foodEntryRepository.findByDailyLogId(log.getId()).stream()
+                    .map(FoodEntryDto::fromEntity)
+                    .toList();
+        }
+
         return new DailyStatsDto(
                 log.getCalories().doubleValue(),
                 log.getProtein().doubleValue(),
                 log.getFat().doubleValue(),
                 log.getCarbs().doubleValue(),
                 targetProtein,
-                proteinProgressPercent
+                proteinProgressPercent,
+                entries
         );
+    }
+    @Transactional
+    public void deleteEntry(Long entryId, User user) {
+        FoodEntry entry = foodEntryRepository.findById(entryId)
+                .orElseThrow(() -> new IllegalArgumentException("Запись не найдена: " + entryId));
+
+        // Проверка: запись принадлежит текущему пользователю
+        if (!entry.getDailyLog().getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Нет доступа к записи");
+        }
+
+        DailyLog log = entry.getDailyLog();
+        foodEntryRepository.delete(entry);
+        recalculateDailyTotals(log);
     }
 }
 
