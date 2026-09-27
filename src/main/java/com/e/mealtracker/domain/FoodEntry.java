@@ -27,6 +27,9 @@ public class FoodEntry {
     @JoinColumn(name = "recipe_id")
     private Recipe recipe;
 
+    @Column(name = "recipe_name", length = 255)
+    private String recipeName;
+
 
 
     @Column(name = "weight_in_grams", nullable = false)

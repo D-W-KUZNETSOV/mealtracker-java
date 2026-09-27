@@ -96,6 +96,7 @@ public class StatsService {
         FoodEntry entry = new FoodEntry();
         entry.setDailyLog(log);
         entry.setRecipe(recipe);
+        entry.setRecipeName(recipe.getName());
         entry.setWeightInGrams(portion.getWeightInGrams());
 
         entry.setCaloriesPer100g(caloriesPer100g);
