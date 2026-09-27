@@ -1,5 +1,6 @@
 package com.e.mealtracker.domain;
 
+import com.e.mealtracker.util.UnitType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,6 +35,13 @@ public class Ingredient {
 
     @Column(name = "carbs_per100g")
     private Double carbsPer100g;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "unit_type", length = 20)
+    private UnitType unitType = UnitType.GRAM;
+
+    @Column(name = "unit_weight_grams")
+    private Double unitWeightGrams;
 
     public double calculateCaloriesPer100g() {
         double fats = (fatsPer100g != null) ? fatsPer100g : 0.0;

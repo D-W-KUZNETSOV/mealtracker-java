@@ -1,8 +1,8 @@
 package com.e.mealtracker.dto;
 
+import com.e.mealtracker.util.UnitType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,5 +22,8 @@ public class CreateIngredientRequest {
     private Double fatsPer100g;
     @Min(value = 0, message = "Углеводы не могут быть отрицательными")
     private Double carbsPer100g;
-}
 
+    // ============ Единицы измерения ============
+    private UnitType unitType;
+    private Double unitWeightGrams;
+}
