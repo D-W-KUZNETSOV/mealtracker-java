@@ -8,4 +8,5 @@ public class IngredientUpdateDTO {
     private Double fatsPer100g;
     private Double proteinsPer100g;
     private Double carbsPer100g;
+    private Double caloriesPer100g;   // ← добавили
 }

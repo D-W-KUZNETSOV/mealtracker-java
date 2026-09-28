@@ -22,6 +22,8 @@ public class CreateIngredientRequest {
     private Double fatsPer100g;
     @Min(value = 0, message = "Углеводы не могут быть отрицательными")
     private Double carbsPer100g;
+    @Min(value = 0, message = "Калории не могут быть отрицательными")
+    private Double caloriesPer100g;
 
     // ============ Единицы измерения ============
     private UnitType unitType;
