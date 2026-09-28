@@ -3,6 +3,7 @@ package com.e.mealtracker.service;
 import com.e.mealtracker.domain.Ingredient;
 import com.e.mealtracker.domain.Recipe;
 import com.e.mealtracker.domain.RecipeIngredient;
+import com.e.mealtracker.domain.RecipeVisibility;
 import com.e.mealtracker.dto.RecipeSummaryDto;
 import com.e.mealtracker.dto.RecipeSummaryDto.IngredientItemDto;
 import com.e.mealtracker.entity.User;
@@ -29,9 +30,11 @@ public class RecipeNutritionService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
 
-        Recipe recipe = recipeRepository.findByIdAndUser(recipeId, user)
+        Recipe recipe = recipeRepository.findById(recipeId)
+                .filter(r -> r.getVisibility() == RecipeVisibility.PUBLIC
+                        || r.getUser().getId().equals(user.getId()))
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Рецепт с ID " + recipeId + " не найден или недоступен пользователю"));
+                        "Рецепт с ID " + recipeId + " не найден или недоступен"));
 
         List<IngredientItemDto> items = new ArrayList<>();
 
