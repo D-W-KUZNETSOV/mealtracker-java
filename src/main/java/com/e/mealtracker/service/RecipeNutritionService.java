@@ -55,6 +55,7 @@ public class RecipeNutritionService {
             double carbsPer100 = safe(ing.getCarbsPer100g());
 
             IngredientItemDto item = new IngredientItemDto();
+            item.setIngredientId(ing.getId());    // 🆕
             item.setName(ing.getName());
             item.setQuantityGrams(weight);
             item.setCaloriesPer100g(calsPer100);
@@ -63,11 +64,16 @@ public class RecipeNutritionService {
             item.setCarbsPer100g(carbsPer100);
             item.setItemCalories(calsPer100 * factor);
 
+
             items.add(item);
         }
 
         RecipeSummaryDto dto = new RecipeSummaryDto();
+        dto.setId(recipe.getId());
         dto.setName(recipe.getName());
+        dto.setCategory(recipe.getCategory() != null            // 🆕
+                ? recipe.getCategory().getDisplayName()
+                : null);
         dto.setDescription(recipe.getDescription());
         dto.setImageUrl(recipe.getImageUrl());
         dto.setVisibility(recipe.getVisibility());
@@ -77,6 +83,8 @@ public class RecipeNutritionService {
         dto.setTotalProteins(recipe.getTotalProteins());
         dto.setTotalCarbs(recipe.getTotalCarbs());
         dto.setTotalWeight(recipe.getTotalWeight());
+        dto.setId(recipe.getId());
+        dto.setCategory(recipe.getCategory() != null ? recipe.getCategory().getDisplayName() : null);
 
         return dto;
     }

@@ -203,6 +203,97 @@ public class RecipeService {
         );
     }
 
+    @Transactional
+    public RecipeDto updateRecipe(Long id, CreateRecipeRequest request, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+
+        // 1. Находим рецепт и проверяем, что он принадлежит юзеру
+        Recipe recipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Рецепт с ID " + id + " не найден"));
+
+        if (!recipe.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Нет доступа к рецепту");
+        }
+
+        // 2. Обновляем простые поля
+        recipe.setName(request.getName());
+        recipe.setDescription(request.getDescription());
+        recipe.setImageUrl(request.getImageUrl());
+
+        if (request.getCategory() != null && !request.getCategory().isBlank()) {
+            try {
+                recipe.setCategory(MealType.valueOf(request.getCategory().trim().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                log.warn("Некорректная категория '{}', устанавливаем null", request.getCategory());
+                recipe.setCategory(null);
+            }
+        } else {
+            recipe.setCategory(null);
+        }
+
+        // 3. Очищаем старые ингредиенты (orphanRemoval = true удалит их из БД)
+        recipe.getIngredients().clear();
+
+        // 4. Добавляем новые ингредиенты
+        List<String> missingNutritionalData = new ArrayList<>();
+
+        for (IngredientWeightDto input : request.getIngredients()) {
+            Ingredient ingredient = ingredientRepository.findById(input.getIngredientId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Ингредиент с ID " + input.getIngredientId() + " не найден"));
+
+            if (ingredient.getProteinsPer100g() == null
+                    || ingredient.getFatsPer100g() == null
+                    || ingredient.getCarbsPer100g() == null) {
+                missingNutritionalData.add(ingredient.getName());
+            }
+
+            RecipeIngredient ri = new RecipeIngredient();
+            ri.setRecipe(recipe);
+            ri.setIngredient(ingredient);
+            ri.setWeightInGrams(input.getWeightInGrams());
+
+            recipe.getIngredients().add(ri);
+        }
+
+        if (!missingNutritionalData.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "У следующих ингредиентов не заполнены данные КБЖУ: " +
+                            String.join(", ", missingNutritionalData));
+        }
+
+        // 5. Пересчитываем КБЖУ
+        recipe.setTotalCalories(recipe.calculateTotalCalories());
+        recipe.setTotalProteins(recipe.calculateTotalProteins());
+        recipe.setTotalFats(recipe.calculateTotalFats());
+        recipe.setTotalCarbs(recipe.calculateTotalCarbs());
+
+        // 6. Пересчитываем КБЖУ на 100 г
+        BigDecimal totalWeight = recipe.getIngredients().stream()
+                .map(ri -> BigDecimal.valueOf(ri.getWeightInGrams()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (totalWeight.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal factor = BigDecimal.valueOf(100)
+                    .divide(totalWeight, 10, RoundingMode.HALF_UP);
+
+            recipe.setCaloriesPer100g(recipe.getTotalCalories().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+            recipe.setProteinPer100g(recipe.getTotalProteins().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+            recipe.setFatPer100g(recipe.getTotalFats().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+            recipe.setCarbsPer100g(recipe.getTotalCarbs().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+        } else {
+            recipe.setCaloriesPer100g(BigDecimal.ZERO);
+            recipe.setProteinPer100g(BigDecimal.ZERO);
+            recipe.setFatPer100g(BigDecimal.ZERO);
+            recipe.setCarbsPer100g(BigDecimal.ZERO);
+        }
+
+        recipe = recipeRepository.save(recipe);
+
+        return RecipeDto.fromEntity(recipe);
+    }
+
 
 
 

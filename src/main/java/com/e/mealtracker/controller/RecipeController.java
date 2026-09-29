@@ -117,6 +117,18 @@ public class RecipeController {
         return ResponseEntity.ok(recipeService.toggleRecipeVisibility(id, userDetails.getUsername()));
     }
 
+    @PutMapping("/{id}")
+    @Operation(summary = "Обновить рецепт")
+    public ResponseEntity<RecipeDto> updateRecipe(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateRecipeRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails.getUsername();
+        RecipeDto updated = recipeService.updateRecipe(id, request, username);
+        log.info("Рецепт обновлён: id={}, username={}", id, username);
+        return ResponseEntity.ok(updated);
+    }
+
 
 }
 

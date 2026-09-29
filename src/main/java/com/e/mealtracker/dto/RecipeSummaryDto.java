@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 public class RecipeSummaryDto {
-
+    private Long id;                    // 🆕
     private String name;
     private String description;
     private String imageUrl;
@@ -18,6 +18,8 @@ public class RecipeSummaryDto {
     private BigDecimal totalProteins;
     private BigDecimal totalCarbs;
     private Double totalWeight;
+    private String category;   // 🆕
+
 
     @Data
     public static class IngredientItemDto {
@@ -28,5 +30,6 @@ public class RecipeSummaryDto {
         private double proteinsPer100g;
         private double carbsPer100g;
         private double itemCalories;
+        private Long ingredientId;   // 🆕
     }
 }
