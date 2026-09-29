@@ -125,6 +125,12 @@ public class Recipe {
         }
         return total.setScale(2, RoundingMode.HALF_UP);
     }
+    public double getTotalWeight() {
+        if (ingredients == null) return 0.0;
+        return ingredients.stream()
+                .mapToDouble(RecipeIngredient::getWeightInGrams)
+                .sum();
+    }
 
     @Override
     public boolean equals(Object o) {

@@ -116,6 +116,8 @@ public class RecipeController {
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(recipeService.toggleRecipeVisibility(id, userDetails.getUsername()));
     }
+
+
 }
 
 

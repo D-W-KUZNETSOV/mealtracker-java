@@ -18,6 +18,7 @@ public class RecipeDto {
     private BigDecimal totalProteins;
     private BigDecimal totalFats;
     private BigDecimal totalCarbs;
+    private Double totalWeight;
 
     public static RecipeDto fromEntity(Recipe r) {
         RecipeDto dto = new RecipeDto();
@@ -32,6 +33,7 @@ public class RecipeDto {
         dto.setTotalProteins(r.getTotalProteins());
         dto.setTotalFats(r.getTotalFats());
         dto.setTotalCarbs(r.getTotalCarbs());
+        dto.setTotalWeight(r.getTotalWeight());
 
         if (r.getIngredients() != null) {
             dto.setIngredients(r.getIngredients().stream()
