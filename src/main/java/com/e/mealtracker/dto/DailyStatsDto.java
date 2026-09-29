@@ -15,23 +15,28 @@ public class DailyStatsDto {
     private final double proteins;
     private final double fats;
     private final double carbs;
-    private final Double targetProtein;      // может быть null
-    private final Double proteinProgressPercent; // может быть null
-    private final List<FoodEntryDto> entries; // список записей за день
+    private final Double targetCalories;
+    private final Double caloriesProgressPercent;
+    private final Double targetProtein;
+    private final Double proteinProgressPercent;
+    private final List<FoodEntryDto> entries;
 
-    // Конструктор для старых вызовов (без целей, без entries)
+    // Старый конструктор (для совместимости)
     public DailyStatsDto(double calories, double proteins, double fats, double carbs) {
-        this(calories, proteins, fats, carbs, null, null, Collections.emptyList());
+        this(calories, proteins, fats, carbs, null, null, null, null, Collections.emptyList());
     }
 
-    // Конструктор со всеми полями
+    // Полный конструктор
     public DailyStatsDto(double calories, double proteins, double fats, double carbs,
+                         Double targetCalories, Double caloriesProgressPercent,
                          Double targetProtein, Double proteinProgressPercent,
                          List<FoodEntryDto> entries) {
         this.calories = Math.round(calories * 10.0) / 10.0;
         this.proteins = Math.round(proteins * 10.0) / 10.0;
         this.fats = Math.round(fats * 10.0) / 10.0;
         this.carbs = Math.round(carbs * 10.0) / 10.0;
+        this.targetCalories = targetCalories;
+        this.caloriesProgressPercent = caloriesProgressPercent;
         this.targetProtein = targetProtein;
         this.proteinProgressPercent = proteinProgressPercent;
         this.entries = entries != null ? entries : Collections.emptyList();

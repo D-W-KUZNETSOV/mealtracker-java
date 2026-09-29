@@ -10,6 +10,7 @@ import com.e.mealtracker.exception.InvalidPortionWeightException;
 import com.e.mealtracker.exception.RecipeNotFoundException;
 import com.e.mealtracker.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,7 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StatsService {
@@ -163,7 +164,7 @@ public class StatsService {
     }
 
     private DailyStatsDto calculateStatsForDate(LocalDate date, User user) {
-        DailyLog log = dailyLogRepository.findByUserAndLogDate(user, date)
+        DailyLog dailyLog = dailyLogRepository.findByUserAndLogDate(user, date)
                 .orElseGet(() -> {
                     DailyLog empty = new DailyLog();
                     empty.setUser(user);
@@ -171,29 +172,40 @@ public class StatsService {
                     return empty;
                 });
 
-        TargetProteinResponse proteinResp = nutritionCalculationService.calculateTargetProteinFromGoals(user);
-
-        Double targetProtein = null;
-        Double proteinProgressPercent = null;
-
-        if (proteinResp != null && proteinResp.targetProteinGramsPerDay() > 0) {
-            targetProtein = proteinResp.targetProteinGramsPerDay();
-            proteinProgressPercent = (log.getProtein().doubleValue() / targetProtein) * 100.0;
+        Double targetCalories = null;
+        Double caloriesProgressPercent = null;
+        try {
+            BigDecimal calculated = nutritionCalculationService.calculateDailyCaloriesForUser(user);
+            if (calculated != null && calculated.compareTo(BigDecimal.ZERO) > 0) {
+                targetCalories = calculated.doubleValue();
+                caloriesProgressPercent = (dailyLog.getCalories().doubleValue() / targetCalories) * 100.0;
+            }
+        } catch (Exception e) {
+            log.warn("Не удалось рассчитать цель по калориям для {}: {}", user.getUsername(), e.getMessage());
         }
 
-        // Подгружаем записи за день (если log сохранён — есть id)
+        TargetProteinResponse proteinResp = nutritionCalculationService.calculateTargetProteinFromGoals(user);
+        Double targetProtein = null;
+        Double proteinProgressPercent = null;
+        if (proteinResp != null && proteinResp.targetProteinGramsPerDay() > 0) {
+            targetProtein = proteinResp.targetProteinGramsPerDay();
+            proteinProgressPercent = (dailyLog.getProtein().doubleValue() / targetProtein) * 100.0;
+        }
+
         List<FoodEntryDto> entries = Collections.emptyList();
-        if (log.getId() != null) {
-            entries = foodEntryRepository.findByDailyLogId(log.getId()).stream()
+        if (dailyLog.getId() != null) {
+            entries = foodEntryRepository.findByDailyLogId(dailyLog.getId()).stream()
                     .map(FoodEntryDto::fromEntity)
                     .toList();
         }
 
         return new DailyStatsDto(
-                log.getCalories().doubleValue(),
-                log.getProtein().doubleValue(),
-                log.getFat().doubleValue(),
-                log.getCarbs().doubleValue(),
+                dailyLog.getCalories().doubleValue(),
+                dailyLog.getProtein().doubleValue(),
+                dailyLog.getFat().doubleValue(),
+                dailyLog.getCarbs().doubleValue(),
+                targetCalories,
+                caloriesProgressPercent,
                 targetProtein,
                 proteinProgressPercent,
                 entries
