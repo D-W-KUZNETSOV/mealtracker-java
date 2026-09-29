@@ -17,6 +17,7 @@ public class RecipeSummaryDto {
     private BigDecimal totalFats;
     private BigDecimal totalProteins;
     private BigDecimal totalCarbs;
+    private Double totalWeight;
 
     @Data
     public static class IngredientItemDto {

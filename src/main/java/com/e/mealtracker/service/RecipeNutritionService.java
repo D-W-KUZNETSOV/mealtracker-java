@@ -76,6 +76,7 @@ public class RecipeNutritionService {
         dto.setTotalFats(recipe.getTotalFats());
         dto.setTotalProteins(recipe.getTotalProteins());
         dto.setTotalCarbs(recipe.getTotalCarbs());
+        dto.setTotalWeight(recipe.getTotalWeight());
 
         return dto;
     }
