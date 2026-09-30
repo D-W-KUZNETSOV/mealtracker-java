@@ -4,7 +4,9 @@ public enum MealType {
     BREAKFAST("Завтрак"),
     LUNCH("Обед"),
     DINNER("Ужин"),
-    SNACK("Перекус");
+    SNACK("Перекус"),
+    DESSERT("Десерт"),
+    DRINK("Напиток");
 
     private final String displayName;
 
@@ -16,4 +18,3 @@ public enum MealType {
         return displayName;
     }
 }
-
