@@ -69,6 +69,9 @@ public class Recipe {
     @Column(nullable = false)
     private Integer servings = 1;
 
+    @Column(name = "name_lower")
+    private String nameLower;
+
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecipeIngredient> ingredients = new ArrayList<>();
 

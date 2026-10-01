@@ -147,22 +147,29 @@ public class RecipeService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
 
-        MealType mealType = null;
+        // Для native query category передаём строкой (enum name)
+        String categoryStr = null;
         if (category != null && !category.isBlank()) {
             try {
-                mealType = MealType.valueOf(category.toUpperCase());
+                MealType.valueOf(category.toUpperCase());
+                categoryStr = category.toUpperCase();
             } catch (IllegalArgumentException e) {
                 log.debug("Некорректная категория: {}", category);
             }
         }
+        if (query != null && !query.isBlank()) {
+            query = query.toLowerCase();
+        }
 
-        Specification<Recipe> spec = RecipeSpecifications.byUser(user)
-                .and(RecipeSpecifications.byCategory(mealType))
-                .and(RecipeSpecifications.nameContains(query))
-                .and(RecipeSpecifications.caloriesBetween(minCalories, maxCalories))
-                .and(RecipeSpecifications.proteinAtLeast(minProtein));
-
-        Page<Recipe> recipesPage = recipeRepository.findAll(spec, pageable);
+        Page<Recipe> recipesPage = recipeRepository.searchRecipesNative(
+                user.getId(),
+                query == null || query.isBlank() ? null : query.trim(),
+                categoryStr,
+                minCalories,
+                maxCalories,
+                minProtein,
+                pageable
+        );
 
         return recipesPage.map(RecipeDto::fromEntity);
     }
