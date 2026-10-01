@@ -15,7 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.data.domain.Sort;
+import java.math.BigDecimal;
 import java.util.List;
 
 @Slf4j
@@ -34,15 +35,37 @@ public class RecipeController {
      * Возвращает страницу DTO рецептов (200 OK).
      */
     @GetMapping
-    @Operation(summary = "Получить список рецептов текущего пользователя с пагинацией и фильтром по категории")
+    @Operation(summary = "Список рецептов с пагинацией и фильтрами")
     public ResponseEntity<Page<RecipeDto>> getAllRecipes(
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) BigDecimal minCalories,
+            @RequestParam(required = false) BigDecimal maxCalories,
+            @RequestParam(required = false) BigDecimal minProtein,
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name,asc") String sort) {
+
         String username = userDetails.getUsername();
-        Page<RecipeDto> recipes = recipeService.getAllRecipesByUser(category, username, PageRequest.of(page, size));
-        log.debug("Получен список рецептов: page={}, size={}, count={}, username={}", page, size, recipes.getTotalElements(), username);
+
+        // Парсим sort: "name,asc" → Sort
+        Sort sortObj = Sort.by(Sort.Direction.ASC, "name");
+        if (sort != null && !sort.isBlank()) {
+            String[] parts = sort.split(",");
+            String field = parts[0];
+            Sort.Direction dir = parts.length > 1 && parts[1].equalsIgnoreCase("desc")
+                    ? Sort.Direction.DESC
+                    : Sort.Direction.ASC;
+            sortObj = Sort.by(dir, field);
+        }
+
+        Page<RecipeDto> recipes = recipeService.getAllRecipesByUser(
+                category, query, minCalories, maxCalories, minProtein,
+                username, PageRequest.of(page, size, sortObj));
+
+        log.debug("Список рецептов: page={}, size={}, count={}, username={}",
+                page, size, recipes.getTotalElements(), username);
         return ResponseEntity.ok(recipes);
     }
 

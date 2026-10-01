@@ -4,21 +4,19 @@ import com.e.mealtracker.domain.*;
 import com.e.mealtracker.dto.RecipeResponse;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.exception.RecipeNotFoundException;
-import com.e.mealtracker.repository.UserRepository;
+import com.e.mealtracker.repository.*;
 import lombok.extern.slf4j.Slf4j;
 import com.e.mealtracker.dto.CreateRecipeRequest;
 import com.e.mealtracker.dto.IngredientWeightDto;
 import com.e.mealtracker.dto.RecipeDto;
-import com.e.mealtracker.repository.IngredientRepository;
-import com.e.mealtracker.repository.RecipeIngredientRepository;
-import com.e.mealtracker.repository.RecipeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.data.jpa.domain.Specification;
 import java.math.BigDecimal;
+import org.springframework.data.jpa.domain.Specification;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
@@ -137,7 +135,15 @@ public class RecipeService {
     }
 
     @Transactional(readOnly = true)
-    public Page<RecipeDto> getAllRecipesByUser(String category, String username, Pageable pageable) {
+    public Page<RecipeDto> getAllRecipesByUser(
+            String category,
+            String query,
+            BigDecimal minCalories,
+            BigDecimal maxCalories,
+            BigDecimal minProtein,
+            String username,
+            Pageable pageable) {
+
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
 
@@ -150,12 +156,13 @@ public class RecipeService {
             }
         }
 
-        Page<Recipe> recipesPage;
-        if (mealType == null) {
-            recipesPage = recipeRepository.findAllByUser(user, pageable);
-        } else {
-            recipesPage = recipeRepository.findAllByUserAndCategory(user, mealType, pageable);
-        }
+        Specification<Recipe> spec = RecipeSpecifications.byUser(user)
+                .and(RecipeSpecifications.byCategory(mealType))
+                .and(RecipeSpecifications.nameContains(query))
+                .and(RecipeSpecifications.caloriesBetween(minCalories, maxCalories))
+                .and(RecipeSpecifications.proteinAtLeast(minProtein));
+
+        Page<Recipe> recipesPage = recipeRepository.findAll(spec, pageable);
 
         return recipesPage.map(RecipeDto::fromEntity);
     }

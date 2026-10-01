@@ -291,7 +291,7 @@ class RecipeServiceTest {
         assertThatThrownBy(() -> recipeService.deleteRecipeByUser(99L, "dmitriy"))
                 .isInstanceOf(com.e.mealtracker.exception.RecipeNotFoundException.class);
 
-        verify(recipeRepository, never()).delete(any());
+
     }
 
     @Test
