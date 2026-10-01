@@ -120,10 +120,12 @@ public class StatsService {
     }
 
 
+    @Transactional(readOnly = true)
     public DailyStatsDto getTodayStats(User user) {
         return calculateStatsForDate(LocalDate.now(), user);
     }
 
+    @Transactional(readOnly = true)
     public DailyStatsDto getStatsByDate(LocalDate date, User user) {
         return calculateStatsForDate(date, user);
     }
