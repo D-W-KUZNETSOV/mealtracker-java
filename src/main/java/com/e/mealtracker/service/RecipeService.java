@@ -46,6 +46,11 @@ public class RecipeService {
         recipe.setUser(user);
         recipe.setDescription(request.getDescription());
         recipe.setImageUrl(request.getImageUrl());
+        if (request.getServings() != null && request.getServings() > 0) {
+            recipe.setServings(request.getServings());
+        } else {
+            recipe.setServings(1);
+        }
 
         // 2. Категория
         if (request.getCategory() != null && !request.getCategory().isBlank()) {

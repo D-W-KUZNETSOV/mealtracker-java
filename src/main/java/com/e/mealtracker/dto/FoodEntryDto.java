@@ -15,9 +15,10 @@ public class FoodEntryDto {
     private final double proteins;
     private final double fats;
     private final double carbs;
+    private final double servings;
 
     public FoodEntryDto(Long id, String recipeName, double weightInGrams,
-                        double calories, double proteins, double fats, double carbs) {
+                        double calories, double proteins, double fats, double carbs,double servings) {
         this.id = id;
         this.recipeName = recipeName;
         this.weightInGrams = Math.round(weightInGrams * 10.0) / 10.0;
@@ -25,6 +26,7 @@ public class FoodEntryDto {
         this.proteins = Math.round(proteins * 10.0) / 10.0;
         this.fats = Math.round(fats * 10.0) / 10.0;
         this.carbs = Math.round(carbs * 10.0) / 10.0;
+        this.servings = Math.round(servings * 100.0) / 100.0;
     }
 
     public static FoodEntryDto fromEntity(FoodEntry entry) {
@@ -38,6 +40,12 @@ public class FoodEntryDto {
             name = "Без названия";
         }
 
+        // Считаем количество порций
+        double servings = 0;
+        if (entry.getRecipe() != null && entry.getRecipe().getServingSizeGrams() > 0) {
+            servings = entry.getWeightInGrams() / entry.getRecipe().getServingSizeGrams();
+        }
+
         return new FoodEntryDto(
                 entry.getId(),
                 name,
@@ -45,7 +53,8 @@ public class FoodEntryDto {
                 entry.getCalories().doubleValue(),
                 entry.getProtein().doubleValue(),
                 entry.getFat().doubleValue(),
-                entry.getCarbs().doubleValue()
+                entry.getCarbs().doubleValue(),
+                servings
         );
     }
 }

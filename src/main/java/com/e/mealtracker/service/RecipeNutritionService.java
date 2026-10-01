@@ -85,6 +85,8 @@ public class RecipeNutritionService {
         dto.setTotalWeight(recipe.getTotalWeight());
         dto.setId(recipe.getId());
         dto.setCategory(recipe.getCategory() != null ? recipe.getCategory().getDisplayName() : null);
+        dto.setServings(recipe.getServings());
+        dto.setServingSizeGrams(recipe.getServingSizeGrams());
 
         return dto;
     }

@@ -19,6 +19,8 @@ public class RecipeDto {
     private BigDecimal totalFats;
     private BigDecimal totalCarbs;
     private Double totalWeight;
+    private Integer servings;
+    private Double servingSizeGrams;
 
     public static RecipeDto fromEntity(Recipe r) {
         RecipeDto dto = new RecipeDto();
@@ -27,6 +29,8 @@ public class RecipeDto {
         dto.setCategory(r.getCategory() != null ? r.getCategory().getDisplayName() : "Без категории");
         dto.setDescription(r.getDescription());
         dto.setImageUrl(r.getImageUrl());
+        dto.setServings(r.getServings());
+        dto.setServingSizeGrams(r.getServingSizeGrams());
 
         // Берём сохранённые значения из колонок, а не пересчитываем
         dto.setTotalCalories(r.getTotalCalories());

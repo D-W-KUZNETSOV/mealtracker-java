@@ -1,6 +1,7 @@
 package com.e.mealtracker.dto;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -15,6 +16,9 @@ public class CreateRecipeRequest {
     private String name;
 
     private String category;
+
+    @Min(value = 1, message = "Порций должно быть минимум 1")
+    private Integer servings = 1;
 
     @NotEmpty(message = "В рецепте должен быть хотя бы один ингредиент")
     @Valid

@@ -66,6 +66,9 @@ public class Recipe {
     @Column(name = "carbs_per_100g", precision = 10, scale = 2)
     private BigDecimal carbsPer100g = BigDecimal.ZERO;
 
+    @Column(nullable = false)
+    private Integer servings = 1;
+
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecipeIngredient> ingredients = new ArrayList<>();
 
@@ -130,6 +133,11 @@ public class Recipe {
         return ingredients.stream()
                 .mapToDouble(RecipeIngredient::getWeightInGrams)
                 .sum();
+    }
+
+    public double getServingSizeGrams() {
+        if (servings == null || servings <= 0) return getTotalWeight();
+        return getTotalWeight() / servings;
     }
 
     @Override

@@ -19,6 +19,8 @@ public class RecipeSummaryDto {
     private BigDecimal totalCarbs;
     private Double totalWeight;
     private String category;   // 🆕
+    private Integer servings;
+    private Double servingSizeGrams;
 
 
     @Data
