@@ -1,5 +1,7 @@
 package com.e.mealtracker.controller;
 
+import com.e.mealtracker.dto.CreateMealPlanItemRequest;
+import com.e.mealtracker.dto.CreateMealPlanRequest;
 import com.e.mealtracker.dto.MealPlanDto;
 import com.e.mealtracker.dto.MealPlanItemDto;
 import com.e.mealtracker.service.MealPlanService;
@@ -42,12 +44,11 @@ public class MealPlanController {
     @PostMapping
     @Operation(summary = "Создать план меню")
     public ResponseEntity<MealPlanDto> create(
-            @RequestBody Map<String, Object> body,
+            @RequestBody CreateMealPlanRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        String name = (String) body.get("name");
-        LocalDate startDate = LocalDate.parse((String) body.get("startDate"));
-        LocalDate endDate = LocalDate.parse((String) body.get("endDate"));
-        MealPlanDto dto = mealPlanService.createPlan(name, startDate, endDate, userDetails.getUsername());
+        MealPlanDto dto = mealPlanService.createPlan(
+                request.getName(), request.getStartDate(), request.getEndDate(),
+                userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
@@ -55,14 +56,11 @@ public class MealPlanController {
     @Operation(summary = "Обновить план")
     public ResponseEntity<MealPlanDto> update(
             @PathVariable Long id,
-            @RequestBody Map<String, Object> body,
+            @RequestBody CreateMealPlanRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        String name = (String) body.get("name");
-        LocalDate startDate = body.get("startDate") != null
-                ? LocalDate.parse((String) body.get("startDate")) : null;
-        LocalDate endDate = body.get("endDate") != null
-                ? LocalDate.parse((String) body.get("endDate")) : null;
-        return ResponseEntity.ok(mealPlanService.updatePlan(id, name, startDate, endDate, userDetails.getUsername()));
+        return ResponseEntity.ok(mealPlanService.updatePlan(id,
+                request.getName(), request.getStartDate(), request.getEndDate(),
+                userDetails.getUsername()));
     }
 
     @DeleteMapping("/{id}")
@@ -78,19 +76,13 @@ public class MealPlanController {
     @Operation(summary = "Добавить приём в план")
     public ResponseEntity<MealPlanItemDto> addItem(
             @PathVariable Long id,
-            @RequestBody Map<String, Object> body,
+            @RequestBody CreateMealPlanItemRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        LocalDate planDate = LocalDate.parse((String) body.get("planDate"));
-        String mealType = (String) body.get("mealType");
-        Long recipeId = body.get("recipeId") != null ? ((Number) body.get("recipeId")).longValue() : null;
-        Long ingredientId = body.get("ingredientId") != null ? ((Number) body.get("ingredientId")).longValue() : null;
-        Double servings = body.get("servings") != null ? ((Number) body.get("servings")).doubleValue() : null;
-        Double weightInGrams = body.get("weightInGrams") != null ? ((Number) body.get("weightInGrams")).doubleValue() : null;
-        String customName = (String) body.get("customName");
-
-        MealPlanItemDto dto = mealPlanService.addItem(id, planDate, mealType,
-                recipeId, ingredientId, servings, weightInGrams, customName,
-                userDetails.getUsername());
+        MealPlanItemDto dto = mealPlanService.addItem(id,
+                request.getPlanDate(), request.getMealType(),
+                request.getRecipeId(), request.getIngredientId(),
+                request.getServings(), request.getWeightInGrams(),
+                request.getCustomName(), userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 

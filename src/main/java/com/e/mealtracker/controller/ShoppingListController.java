@@ -1,5 +1,6 @@
 package com.e.mealtracker.controller;
 
+import com.e.mealtracker.dto.GenerateShoppingListRequest;
 import com.e.mealtracker.dto.ShoppingListDto;
 import com.e.mealtracker.dto.ShoppingListItemDto;
 import com.e.mealtracker.service.ShoppingListService;
@@ -12,9 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/shopping-lists")
@@ -43,14 +42,11 @@ public class ShoppingListController {
     @Operation(summary = "Сгенерировать список покупок из плана")
     public ResponseEntity<ShoppingListDto> generate(
             @PathVariable Long planId,
-            @RequestBody(required = false) Map<String, Object> body,
+            @RequestBody(required = false) GenerateShoppingListRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        LocalDate periodStart = body != null && body.get("periodStart") != null
-                ? LocalDate.parse((String) body.get("periodStart")) : null;
-        LocalDate periodEnd = body != null && body.get("periodEnd") != null
-                ? LocalDate.parse((String) body.get("periodEnd")) : null;
-
-        ShoppingListDto dto = shoppingListService.generateFromPlan(planId, periodStart, periodEnd,
+        ShoppingListDto dto = shoppingListService.generateFromPlan(planId,
+                request != null ? request.getPeriodStart() : null,
+                request != null ? request.getPeriodEnd() : null,
                 userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
