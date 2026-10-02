@@ -31,6 +31,7 @@ public class StatsService {
     private final RecipeRepository recipeRepository;
     private final UserRepository userRepository;
     private final NutritionCalculationService nutritionCalculationService;
+    private final RecipeNutritionService recipeNutritionService;
 
 
     /**
@@ -58,43 +59,21 @@ public class StatsService {
         }
 
         // Считаем per-100g из totalCalories и общего веса ингредиентов
-        BigDecimal totalWeight = BigDecimal.valueOf(recipe.getIngredients().stream()
-                .mapToDouble(ri -> ri.getWeightInGrams())
-                .sum());
+        RecipeNutritionService.Per100g per100g =
+                recipeNutritionService.calculatePer100g(recipe);
 
-        BigDecimal caloriesPer100g;
-        BigDecimal proteinPer100g;
-        BigDecimal fatPer100g;
-        BigDecimal carbsPer100g;
+        RecipeNutritionService.Per100g forPortion =
+                recipeNutritionService.calculateForPortion(per100g, portion.getWeightInGrams());
 
-        if (totalWeight.compareTo(BigDecimal.ZERO) > 0) {
-            caloriesPer100g = recipe.getTotalCalories()
-                    .multiply(BigDecimal.valueOf(100))
-                    .divide(totalWeight, MathContext.DECIMAL32);
-            proteinPer100g = recipe.getTotalProteins()
-                    .multiply(BigDecimal.valueOf(100))
-                    .divide(totalWeight, MathContext.DECIMAL32);
-            fatPer100g = recipe.getTotalFats()
-                    .multiply(BigDecimal.valueOf(100))
-                    .divide(totalWeight, MathContext.DECIMAL32);
-            carbsPer100g = recipe.getTotalCarbs()
-                    .multiply(BigDecimal.valueOf(100))
-                    .divide(totalWeight, MathContext.DECIMAL32);
-        } else {
-            // Если веса ингредиентов нет (редкий кейс), можно поставить 0 или кинуть исключение
-            caloriesPer100g = BigDecimal.ZERO;
-            proteinPer100g = BigDecimal.ZERO;
-            fatPer100g = BigDecimal.ZERO;
-            carbsPer100g = BigDecimal.ZERO;
-        }
+        BigDecimal caloriesPer100g = per100g.calories();
+        BigDecimal proteinPer100g  = per100g.protein();
+        BigDecimal fatPer100g      = per100g.fat();
+        BigDecimal carbsPer100g    = per100g.carbs();
 
-        BigDecimal weight = BigDecimal.valueOf(portion.getWeightInGrams());
-        BigDecimal factor = weight.divide(BigDecimal.valueOf(100), MathContext.DECIMAL32);
-
-        BigDecimal calories = caloriesPer100g.multiply(factor);
-        BigDecimal protein = proteinPer100g.multiply(factor);
-        BigDecimal fat = fatPer100g.multiply(factor);
-        BigDecimal carbs = carbsPer100g.multiply(factor);
+        BigDecimal calories = forPortion.calories();
+        BigDecimal protein  = forPortion.protein();
+        BigDecimal fat      = forPortion.fat();
+        BigDecimal carbs    = forPortion.carbs();
 
         FoodEntry entry = new FoodEntry();
         entry.setDailyLog(log);
