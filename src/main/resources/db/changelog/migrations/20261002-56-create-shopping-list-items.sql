@@ -1,0 +1,18 @@
+--liquibase formatted sql
+
+--changeset dmitriy:20261002-56-create-shopping-list-items
+CREATE TABLE IF NOT EXISTS shopping_list_items (
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    list_id BIGINT NOT NULL,
+    ingredient_id BIGINT,
+    ingredient_name VARCHAR(255) NOT NULL,
+    category VARCHAR(50),
+    quantity_grams DOUBLE PRECISION,
+    unit_type VARCHAR(20),
+    is_checked BOOLEAN DEFAULT FALSE,
+    CONSTRAINT fk_shopping_list_items_list FOREIGN KEY (list_id)
+        REFERENCES shopping_lists(id) ON DELETE CASCADE,
+    CONSTRAINT fk_shopping_list_items_ingredient FOREIGN KEY (ingredient_id)
+        REFERENCES ingredients(id) ON DELETE SET NULL
+);
+--rollback DROP TABLE IF EXISTS shopping_list_items;

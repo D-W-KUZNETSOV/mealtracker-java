@@ -46,6 +46,9 @@ public class Ingredient {
     @Column(name = "calories_per100g")
     private Double caloriesPer100g;
 
+    @Column(name = "category", length = 50)
+    private String category = "OTHER";
+
     public double calculateCaloriesPer100g() {
         // Если калории заданы явно — используем их
         if (caloriesPer100g != null && caloriesPer100g > 0) {
