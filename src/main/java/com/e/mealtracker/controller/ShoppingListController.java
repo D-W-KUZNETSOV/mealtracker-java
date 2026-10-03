@@ -1,5 +1,6 @@
 package com.e.mealtracker.controller;
 
+import com.e.mealtracker.dto.CreateShoppingListItemRequest;
 import com.e.mealtracker.dto.GenerateShoppingListRequest;
 import com.e.mealtracker.dto.ShoppingListDto;
 import com.e.mealtracker.dto.ShoppingListItemDto;
@@ -83,6 +84,15 @@ public class ShoppingListController {
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
         ShoppingListDto dto = shoppingListService.repeatList(id, userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+    }
+    @PostMapping("/{id}/items")
+    @Operation(summary = "Добавить item вручную")
+    public ResponseEntity<ShoppingListItemDto> addItem(
+            @PathVariable Long id,
+            @RequestBody CreateShoppingListItemRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        ShoppingListItemDto dto = shoppingListService.addItem(id, request, userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 }

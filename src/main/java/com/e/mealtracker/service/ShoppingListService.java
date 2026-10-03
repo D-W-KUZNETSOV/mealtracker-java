@@ -24,6 +24,7 @@ public class ShoppingListService {
     private final MealPlanRepository mealPlanRepository;
     private final MealPlanItemRepository mealPlanItemRepository;
     private final UserRepository userRepository;
+    private final IngredientRepository ingredientRepository;
 
     @Transactional(readOnly = true)
     public List<ShoppingListDto> getAllLists(String username) {
@@ -205,5 +206,34 @@ public class ShoppingListService {
         }
 
         return toDto(newList);
+    }
+    @Transactional
+    public ShoppingListItemDto addItem(Long listId, CreateShoppingListItemRequest req, String username) {
+        User user = getUser(username);
+        ShoppingList list = shoppingListRepository.findByIdAndUser(listId, user)
+                .orElseThrow(() -> new ResourceNotFoundException("Список не найден: " + listId));
+
+        ShoppingListItem item = new ShoppingListItem();
+        item.setList(list);
+
+        // Если ingredientId есть — берём из БД
+        if (req.getIngredientId() != null) {
+            Ingredient ing = ingredientRepository.findById(req.getIngredientId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Ингредиент не найден: " + req.getIngredientId()));
+            item.setIngredient(ing);
+            item.setIngredientName(ing.getName());
+            item.setCategory(ing.getCategory());
+            item.setUnitType(ing.getUnitType());
+        } else {
+            item.setIngredientName(req.getIngredientName());
+            item.setCategory(req.getCategory() != null ? req.getCategory() : "OTHER");
+            item.setUnitType(req.getUnitType());
+        }
+
+        item.setQuantityGrams(req.getQuantityGrams());
+        item.setIsChecked(false);
+
+        item = shoppingListItemRepository.save(item);
+        return ShoppingListItemDto.fromEntity(item);
     }
 }
