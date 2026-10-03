@@ -77,4 +77,12 @@ public class ShoppingListController {
         shoppingListService.deleteList(id, userDetails.getUsername());
         return ResponseEntity.noContent().build();
     }
+    @PostMapping("/{id}/repeat")
+    @Operation(summary = "Повторить список (создать новый из архива)")
+    public ResponseEntity<ShoppingListDto> repeat(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        ShoppingListDto dto = shoppingListService.repeatList(id, userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+    }
 }

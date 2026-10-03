@@ -167,4 +167,43 @@ public class ShoppingListService {
         String customName;
         double totalGrams = 0.0;
     }
+    @Transactional
+    public ShoppingListDto repeatList(Long id, String username) {
+        User user = getUser(username);
+        ShoppingList oldList = shoppingListRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new ResourceNotFoundException("Список не найден: " + id));
+
+        // Архивируем текущий активный
+        shoppingListRepository.findFirstByUserAndStatus(user, "ACTIVE")
+                .ifPresent(active -> {
+                    active.setStatus("ARCHIVED");
+                    shoppingListRepository.save(active);
+                });
+
+        // Создаём новый
+        ShoppingList newList = new ShoppingList();
+        newList.setUser(user);
+        newList.setPlan(oldList.getPlan());
+        newList.setName(oldList.getName());
+        newList.setPeriodStart(oldList.getPeriodStart());
+        newList.setPeriodEnd(oldList.getPeriodEnd());
+        newList.setStatus("ACTIVE");
+        newList = shoppingListRepository.save(newList);
+
+        // Копируем items
+        List<ShoppingListItem> oldItems = shoppingListItemRepository.findAllByListId(oldList.getId());
+        for (ShoppingListItem oldItem : oldItems) {
+            ShoppingListItem newItem = new ShoppingListItem();
+            newItem.setList(newList);
+            newItem.setIngredient(oldItem.getIngredient());
+            newItem.setIngredientName(oldItem.getIngredientName());
+            newItem.setCategory(oldItem.getCategory());
+            newItem.setQuantityGrams(oldItem.getQuantityGrams());
+            newItem.setUnitType(oldItem.getUnitType());
+            newItem.setIsChecked(false);   // сбрасываем галочки
+            shoppingListItemRepository.save(newItem);
+        }
+
+        return toDto(newList);
+    }
 }
