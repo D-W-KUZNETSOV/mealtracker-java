@@ -17,12 +17,19 @@ public class CreateRecipeRequest {
 
     private String category;
 
+    @Size(max = 30, message = "Максимум 30 шагов")
+    private List<@Size(max = 500, message = "Шаг до 500 символов") String> steps;
+
     @Min(value = 1, message = "Порций должно быть минимум 1")
     private Integer servings = 1;
 
     @NotEmpty(message = "В рецепте должен быть хотя бы один ингредиент")
     @Valid
     private List<IngredientWeightDto> ingredients;
+
+
+
+
 
     // Описание — опционально, но если есть, то не длиннее 2000 символов
     @Size(max = 2000, message = "Описание не должно превышать 2000 символов")

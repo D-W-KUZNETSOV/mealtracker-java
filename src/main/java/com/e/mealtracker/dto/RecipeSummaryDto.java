@@ -21,7 +21,7 @@ public class RecipeSummaryDto {
     private String category;   // 🆕
     private Integer servings;
     private Double servingSizeGrams;
-
+    private List<String> steps;   // 🆕
 
     @Data
     public static class IngredientItemDto {

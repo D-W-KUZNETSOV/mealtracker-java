@@ -4,6 +4,7 @@ import com.e.mealtracker.domain.Ingredient;
 import com.e.mealtracker.domain.Recipe;
 import com.e.mealtracker.domain.RecipeIngredient;
 import com.e.mealtracker.domain.RecipeVisibility;
+import com.e.mealtracker.dto.RecipeDto;
 import com.e.mealtracker.dto.RecipeSummaryDto;
 import com.e.mealtracker.dto.RecipeSummaryDto.IngredientItemDto;
 import com.e.mealtracker.entity.User;
@@ -107,6 +108,7 @@ public class RecipeNutritionService {
         dto.setTotalWeight(recipe.getTotalWeight());
         dto.setServings(recipe.getServings());
         dto.setServingSizeGrams(recipe.getServingSizeGrams());
+        dto.setSteps(RecipeDto.parseSteps(recipe.getSteps()));   // 🆕
 
         return dto;
     }

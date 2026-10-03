@@ -72,6 +72,10 @@ public class Recipe {
     @Column(name = "name_lower")
     private String nameLower;
 
+    /** JSON-массив шагов приготовления, например ["Нарезать","Обжарить"] */
+    @Column(name = "steps", columnDefinition = "TEXT")
+    private String steps;
+
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecipeIngredient> ingredients = new ArrayList<>();
 

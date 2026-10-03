@@ -44,6 +44,7 @@ public class RecipeService {
         recipe.setUser(user);
         recipe.setDescription(request.getDescription());
         recipe.setImageUrl(request.getImageUrl());
+        recipe.setSteps(RecipeDto.serializeSteps(request.getSteps()));
         if (request.getServings() != null && request.getServings() > 0) {
             recipe.setServings(request.getServings());
         } else {
@@ -239,6 +240,7 @@ public class RecipeService {
         recipe.setName(request.getName());
         recipe.setDescription(request.getDescription());
         recipe.setImageUrl(request.getImageUrl());
+        recipe.setSteps(RecipeDto.serializeSteps(request.getSteps()));
 
         if (request.getCategory() != null && !request.getCategory().isBlank()) {
             try {
