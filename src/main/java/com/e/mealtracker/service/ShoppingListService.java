@@ -28,7 +28,9 @@ public class ShoppingListService {
     @Transactional(readOnly = true)
     public List<ShoppingListDto> getAllLists(String username) {
         User user = getUser(username);
-        return shoppingListRepository.findAllByUserAndStatusOrderByCreatedAtDesc(user, "ACTIVE").stream()
+        return shoppingListRepository
+                .findAllByUserOrderByCreatedAtDesc(user)
+                .stream()
                 .map(this::toDto)
                 .toList();
     }
