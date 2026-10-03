@@ -38,8 +38,8 @@ public class ShoppingListItem {
     @Column(name = "unit_type", length = 20)
     private UnitType unitType;
 
-    @Column(name = "is_checked")
-    private Boolean isChecked = false;
+    @Column(name = "is_checked", nullable = false)
+    private boolean isChecked = false;
 
     @Override
     public boolean equals(Object o) {
