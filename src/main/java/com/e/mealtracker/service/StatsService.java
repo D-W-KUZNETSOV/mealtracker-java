@@ -1,10 +1,7 @@
 package com.e.mealtracker.service;
 
 import com.e.mealtracker.domain.*;
-import com.e.mealtracker.dto.DailyStatsDto;
-import com.e.mealtracker.dto.FoodEntryDto;
-import com.e.mealtracker.dto.RecipePortionRequest;
-import com.e.mealtracker.dto.TargetProteinResponse;
+import com.e.mealtracker.dto.*;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.exception.InvalidPortionWeightException;
 import com.e.mealtracker.exception.RecipeNotFoundException;
@@ -32,6 +29,8 @@ public class StatsService {
     private final UserRepository userRepository;
     private final NutritionCalculationService nutritionCalculationService;
     private final RecipeNutritionService recipeNutritionService;
+    private final MealPlanRepository mealPlanRepository;
+    private final MealPlanItemRepository mealPlanItemRepository;
 
 
     /**
@@ -205,6 +204,84 @@ public class StatsService {
         DailyLog log = entry.getDailyLog();
         foodEntryRepository.delete(entry);
         recalculateDailyTotals(log);
+    }
+
+
+    @Transactional
+    public int addFromPlan(AddFromPlanRequest request, User user) {
+        LocalDate date = request.getDate();
+        DailyLog log = dailyLogRepository.findByUserAndLogDate(user, date)
+                .orElseGet(() -> {
+                    DailyLog newLog = new DailyLog();
+                    newLog.setUser(user);
+                    newLog.setLogDate(date);
+                    return dailyLogRepository.save(newLog);
+                });
+
+        List<MealPlanItem> items = mealPlanItemRepository.findAllById(request.getItemIds());
+        int added = 0;
+
+        for (MealPlanItem item : items) {
+            // Проверка, что item принадлежит плану пользователя
+            if (!item.getPlan().getId().equals(request.getPlanId())) continue;
+            if (!item.getPlan().getUser().getId().equals(user.getId())) continue;
+
+            FoodEntry entry = new FoodEntry();
+            entry.setDailyLog(log);
+            entry.setWeightInGrams(0);
+
+            if (item.getRecipe() != null) {
+                Recipe recipe = item.getRecipe();
+                double servings = item.getServings() != null ? item.getServings() : 1.0;
+                double recipeTotalWeight = recipe.getTotalWeight();
+                double recipeServings = recipe.getServings() != null ? recipe.getServings() : 1;
+                double portionWeight = (recipeTotalWeight / recipeServings) * servings;
+
+                RecipeNutritionService.Per100g per100g = recipeNutritionService.calculatePer100g(recipe);
+                RecipeNutritionService.Per100g forPortion = recipeNutritionService.calculateForPortion(per100g, portionWeight);
+
+                entry.setRecipe(recipe);
+                entry.setRecipeName(recipe.getName());
+                entry.setWeightInGrams(portionWeight);
+                entry.setCaloriesPer100g(per100g.calories());
+                entry.setProteinPer100g(per100g.protein());
+                entry.setFatPer100g(per100g.fat());
+                entry.setCarbsPer100g(per100g.carbs());
+                entry.setCalories(forPortion.calories());
+                entry.setProtein(forPortion.protein());
+                entry.setFat(forPortion.fat());
+                entry.setCarbs(forPortion.carbs());
+            } else if (item.getIngredient() != null) {
+                Ingredient ing = item.getIngredient();
+                double weight = item.getWeightInGrams() != null ? item.getWeightInGrams() : 100.0;
+                double factor = weight / 100.0;
+
+                double calsPer100 = ing.calculateCaloriesPer100g();
+                double protPer100 = ing.getProteinsPer100g() != null ? ing.getProteinsPer100g() : 0;
+                double fatPer100 = ing.getFatsPer100g() != null ? ing.getFatsPer100g() : 0;
+                double carbsPer100 = ing.getCarbsPer100g() != null ? ing.getCarbsPer100g() : 0;
+
+                entry.setRecipe(null);
+                entry.setRecipeName(ing.getName());
+                entry.setWeightInGrams(weight);
+                entry.setCaloriesPer100g(BigDecimal.valueOf(calsPer100));
+                entry.setProteinPer100g(BigDecimal.valueOf(protPer100));
+                entry.setFatPer100g(BigDecimal.valueOf(fatPer100));
+                entry.setCarbsPer100g(BigDecimal.valueOf(carbsPer100));
+                entry.setCalories(BigDecimal.valueOf(calsPer100 * factor));
+                entry.setProtein(BigDecimal.valueOf(protPer100 * factor));
+                entry.setFat(BigDecimal.valueOf(fatPer100 * factor));
+                entry.setCarbs(BigDecimal.valueOf(carbsPer100 * factor));
+            } else {
+                continue;
+            }
+
+            foodEntryRepository.save(entry);
+            added++;
+        }
+
+        recalculateDailyTotals(log);
+        return added;
     }
 }
 

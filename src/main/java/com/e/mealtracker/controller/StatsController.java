@@ -1,5 +1,6 @@
 package com.e.mealtracker.controller;
 
+import com.e.mealtracker.dto.AddFromPlanRequest;
 import com.e.mealtracker.dto.DailyStatsDto;
 import com.e.mealtracker.dto.RecipePortionRequest;
 import com.e.mealtracker.entity.User;
@@ -15,6 +16,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/stats")
@@ -87,6 +89,18 @@ public class StatsController {
         User user = getUser(userDetails);
         statsService.deleteEntry(entryId, user);
         return ResponseEntity.noContent().build();
+    }
+    @PostMapping("/daily/add-from-plan")
+    @Operation(summary = "Добавить приёмы из плана меню")
+    public ResponseEntity<Map<String, Object>> addFromPlan(
+            @RequestBody AddFromPlanRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = getUser(userDetails);
+        int added = statsService.addFromPlan(request, user);
+        return ResponseEntity.ok(Map.of(
+                "added", added,
+                "message", "Добавлено: " + added + " из " + request.getItemIds().size()
+        ));
     }
 }
 
