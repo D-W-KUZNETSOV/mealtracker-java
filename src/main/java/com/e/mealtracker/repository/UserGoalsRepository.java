@@ -11,6 +11,8 @@ public interface UserGoalsRepository extends JpaRepository<UserGoals, Long> {
 
     @EntityGraph(attributePaths = "user")
     Optional<UserGoals> findFirstByUserOrderByCreatedAtDesc(User user);
+
+    Optional<UserGoals> findByUser(User user);
 }
 
 
