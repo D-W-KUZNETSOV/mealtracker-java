@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -31,6 +33,9 @@ public class User {
 
     @Column(unique = true)
     private String email;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;   // 🆕 soft delete
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private UserProfile profile;

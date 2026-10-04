@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import com.e.mealtracker.exception.UserAlreadyExistsException;
 import java.time.Instant;
+import com.e.mealtracker.exception.AccountDeletedException;
 
 @Slf4j
 @RestControllerAdvice
@@ -94,6 +96,12 @@ public class GlobalExceptionHandler {
 
     // ================== 403 FORBIDDEN ==================
 
+    @ExceptionHandler(AccountDeletedException.class)
+    public ResponseEntity<ApiError> handleAccountDeleted(AccountDeletedException ex,
+                                                         HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, "ACCOUNT_DELETED", ex.getMessage(), request);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex,
                                                        HttpServletRequest request) {
@@ -132,6 +140,11 @@ public class GlobalExceptionHandler {
         log.error("Unhandled exception at {}: ", request.getRequestURI(), ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR",
                 "Произошла непредвиденная ошибка на сервере", request);
+    }
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiError> handleDisabled(DisabledException ex, HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, "ACCOUNT_DELETED",
+                "Аккаунт удалён. Обратитесь в поддержку для восстановления.", request);
     }
 
     // ================== Helper ==================

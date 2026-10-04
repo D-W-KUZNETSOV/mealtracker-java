@@ -1,6 +1,7 @@
 package com.e.mealtracker.security;
 
 import com.e.mealtracker.entity.User;
+import com.e.mealtracker.exception.AccountDeletedException;
 import com.e.mealtracker.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,16 +21,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String login) throws UsernameNotFoundException {
-        log.info("Loading user by login: {}", login);
-
-        // 🆕 Логин по email ИЛИ username
         User user = userRepository.findByEmail(login)
                 .or(() -> userRepository.findByUsername(login))
-                .orElseThrow(() -> {
-                    log.warn("User not found by login: {}", login);
-                    return new UsernameNotFoundException("User not found: " + login);
-                });
-
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + login));
         return new UserDetailsImpl(user);
     }
 }

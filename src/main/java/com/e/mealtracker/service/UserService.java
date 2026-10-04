@@ -11,7 +11,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.e.mealtracker.exception.UserNotFoundException;
+import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -53,6 +57,38 @@ public class UserService {
 
     public void save(User user) {
         userRepository.save(user);
+    }
 
+    /**
+     * Soft delete аккаунта. Проверяет пароль, ставит deletedAt.
+     * Данные не удаляются — через 30 дней purge (hard delete).
+     */
+    @Transactional
+    public void deleteAccount(String username, String password) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new org.springframework.security.authentication.BadCredentialsException(
+                    "Неверный пароль");
+        }
+
+        user.setDeletedAt(LocalDateTime.now());
+        userRepository.save(user);
+        log.info("User '{}' soft-deleted", username);
+    }
+
+    /**
+     * Hard delete всех пользователей, удалённых более daysOld дней назад.
+     * Используется endpoint'ом POST /api/admin/purge-deleted.
+     */
+    @Transactional
+    public int purgeDeletedUsers(int daysOld) {
+        LocalDateTime threshold = LocalDateTime.now().minusDays(daysOld);
+        List<User> toDelete = userRepository.findAllByDeletedAtBefore(threshold);
+        userRepository.deleteAll(toDelete);
+        log.info("Purged {} users deleted before {}", toDelete.size(), threshold);
+        return toDelete.size();
     }
 }
+
