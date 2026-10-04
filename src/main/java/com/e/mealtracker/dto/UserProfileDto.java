@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 @Data
 public class UserProfileDto {
 
+    private String email;   // 🆕
     private Integer heightCm;
     private BigDecimal currentWeightKg;
     private BigDecimal targetWeightKg;

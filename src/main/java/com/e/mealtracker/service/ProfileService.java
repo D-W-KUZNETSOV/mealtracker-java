@@ -5,6 +5,7 @@ import com.e.mealtracker.dto.UserProfileUpdateDto;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.entity.UserProfile;
 import com.e.mealtracker.exception.ResourceNotFoundException;
+import com.e.mealtracker.exception.UserAlreadyExistsException;
 import com.e.mealtracker.repository.UserRepository;
 import com.e.mealtracker.util.ActivityLevel;
 import com.e.mealtracker.util.AgeCalculator;
@@ -55,6 +56,17 @@ public class ProfileService {
         if (dto.getAvatarUrl() != null) {
             profile.setAvatarUrl(dto.getAvatarUrl());
         }
+        // 🆕 Email — редактирование
+        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+            String newEmail = dto.getEmail().trim().toLowerCase();
+            if (!newEmail.equals(user.getEmail())
+                    && userRepository.existsByEmail(newEmail)) {
+                throw new UserAlreadyExistsException("Email уже используется");
+            }
+            user.setEmail(newEmail);
+            log.info("Email updated for user: {} -> {}", username, newEmail);
+        }
+
 
         // ✅ страховка на случай, если поле null (старые записи / new UserProfile)
         if (profile.getActivityLevel() == null) {
@@ -75,6 +87,7 @@ public class ProfileService {
         }
 
         UserProfileDto dto = new UserProfileDto();
+        dto.setEmail(user.getEmail());   // 🆕
         dto.setHeightCm(profile.getHeightCm());
         dto.setCurrentWeightKg(profile.getCurrentWeightKg());
         dto.setTargetWeightKg(profile.getTargetWeightKg());

@@ -3,9 +3,7 @@ package com.e.mealtracker.dto;
 import com.e.mealtracker.util.ActivityLevel;
 import com.e.mealtracker.util.Gender;   // ← добавить
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -13,6 +11,10 @@ import java.time.LocalDate;
 
 @Data
 public class UserProfileUpdateDto {
+
+    @Email(message = "Некорректный email")
+    @Size(max = 255, message = "Email до 255 символов")
+    private String email;   // 🆕
 
     private LocalDate dateOfBirth;
 
