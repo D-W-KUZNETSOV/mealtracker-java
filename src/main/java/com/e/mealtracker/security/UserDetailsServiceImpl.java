@@ -19,13 +19,17 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        log.info("Loading user: {}", username);  // <-- используем log, а не logger
-        User user = userRepository.findByUsername(username)
+    public UserDetails loadUserByUsername(String login) throws UsernameNotFoundException {
+        log.info("Loading user by login: {}", login);
+
+        // 🆕 Логин по email ИЛИ username
+        User user = userRepository.findByEmail(login)
+                .or(() -> userRepository.findByUsername(login))
                 .orElseThrow(() -> {
-                    log.warn("User not found: {}", username);
-                    return new UsernameNotFoundException("User not found: " + username);
+                    log.warn("User not found by login: {}", login);
+                    return new UsernameNotFoundException("User not found: " + login);
                 });
+
         return new UserDetailsImpl(user);
     }
 }
