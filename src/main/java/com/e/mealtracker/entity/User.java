@@ -37,6 +37,14 @@ public class User {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;   // 🆕 soft delete
 
+    // 🆕 Password reset
+    @Column(name = "reset_token")
+    private String resetToken;
+
+    @Column(name = "reset_token_expires_at")
+    private LocalDateTime resetTokenExpiresAt;
+
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private UserProfile profile;
 

@@ -68,3 +68,5 @@ test-output/
 
 # User uploads
 uploads/
+
+application-local.properties

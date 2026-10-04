@@ -18,6 +18,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> findByUsername(String username, Pageable pageable);
 
 
-    // 🆕 Soft delete — все юзеры, удалённые до указанной даты
+    // Soft delete — все юзеры, удалённые до указанной даты
     List<User> findAllByDeletedAtBefore(LocalDateTime threshold);
+
+    // 🆕 Password reset — найти юзера по токену
+    Optional<User> findByResetToken(String resetToken);
 }
+

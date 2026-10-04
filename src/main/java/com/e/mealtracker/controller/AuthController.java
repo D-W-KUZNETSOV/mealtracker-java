@@ -77,7 +77,33 @@ public class AuthController {
         User user = userService.findByUsername(authentication.getName());
         return ResponseEntity.ok(UserResponse.fromEntity(user));
     }
+    /**
+     * Запрос на сброс пароля.
+     * Принимает email, отправляет ссылку с токеном.
+     * Возвращает 204 всегда (не раскрываем, существует ли email).
+     */
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Запрос на сброс пароля (отправка ссылки на email)")
+    public ResponseEntity<Void> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        userService.requestPasswordReset(request.getEmail());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Сброс пароля по токену.
+     * Принимает токен из письма + новый пароль.
+     * Возвращает 204 при успехе, 400 при неверном/истёкшем токене.
+     */
+    @PostMapping("/reset-password")
+    @Operation(summary = "Сброс пароля по токену")
+    public ResponseEntity<Void> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+        userService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.noContent().build();
+    }
 }
+
 
 
 

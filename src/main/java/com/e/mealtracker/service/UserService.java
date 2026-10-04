@@ -14,6 +14,7 @@ import com.e.mealtracker.exception.UserNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -22,6 +23,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     // ВАЖНО: здесь в скобках указан параметр RegisterRequest request
     @Transactional
@@ -90,5 +92,49 @@ public class UserService {
         log.info("Purged {} users deleted before {}", toDelete.size(), threshold);
         return toDelete.size();
     }
+    /**
+     * Запрос на восстановление пароля.
+     * Генерирует токен, сохраняет в БД с TTL 1 час.
+     * (Email-отправка добавится позже через EmailService.)
+     */
+    @Transactional
+    public void requestPasswordReset(String email) {
+        // Не раскрываем, существует ли email
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            log.warn("Password reset requested for unknown email: {}", email);
+            return;   // тихо игнорируем — защита от перебора
+        }
+
+        String token = UUID.randomUUID().toString();
+        user.setResetToken(token);
+        user.setResetTokenExpiresAt(LocalDateTime.now().plusHours(1));
+        userRepository.save(user);
+
+        emailService.sendPasswordResetEmail(email, token);
+    }
+
+    /**
+     * Сброс пароля по токену.
+     * Проверяет токен + срок, меняет пароль, сбрасывает токен.
+     */
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        User user = userRepository.findByResetToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Неверный или истёкший токен"));
+
+        if (user.getResetTokenExpiresAt() == null
+                || user.getResetTokenExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Токен истёк");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetToken(null);
+        user.setResetTokenExpiresAt(null);
+        userRepository.save(user);
+
+        log.info("Password reset for user: {}", user.getUsername());
+    }
 }
+
 
