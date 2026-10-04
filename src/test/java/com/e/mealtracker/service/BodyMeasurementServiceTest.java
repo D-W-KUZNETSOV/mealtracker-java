@@ -1,11 +1,15 @@
 package com.e.mealtracker.service;
 
+import com.e.mealtracker.domain.UserGoals;
 import com.e.mealtracker.dto.BodyMeasurementDto;
 import com.e.mealtracker.dto.CreateBodyMeasurementRequest;
 import com.e.mealtracker.entity.BodyMeasurement;
 import com.e.mealtracker.entity.User;
+import com.e.mealtracker.entity.UserProfile;
 import com.e.mealtracker.exception.ResourceNotFoundException;
 import com.e.mealtracker.repository.BodyMeasurementRepository;
+import com.e.mealtracker.repository.UserGoalsRepository;
+import com.e.mealtracker.repository.UserProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,9 +36,14 @@ class BodyMeasurementServiceTest {
     @Mock
     private BodyMeasurementRepository repository;
 
+    @Mock
+    private UserProfileRepository userProfileRepository;   // 🆕
+
+    @Mock
+    private UserGoalsRepository userGoalsRepository;       // 🆕
+
     @InjectMocks
     private BodyMeasurementService service;
-
     private User user;
 
     @BeforeEach
@@ -42,6 +51,10 @@ class BodyMeasurementServiceTest {
         user = new User();
         user.setId(1L);
         user.setUsername("dmitriy");
+
+        // Mockito по умолчанию вернёт Optional.empty(), но добавим явно
+        lenient().when(userProfileRepository.findByUser(any())).thenReturn(Optional.empty());
+        lenient().when(userGoalsRepository.findByUser(any())).thenReturn(Optional.empty());
     }
 
     // ============================================================
@@ -168,6 +181,34 @@ class BodyMeasurementServiceTest {
                 .hasMessageContaining("99");
 
         verify(repository, never()).delete(any());
+    }
+    @Test
+    @DisplayName("create: при указании веса синхронизирует профиль и цели")
+    void shouldSyncWeightToProfileAndGoals() {
+        CreateBodyMeasurementRequest req = new CreateBodyMeasurementRequest();
+        req.setMeasuredAt(LocalDate.of(2026, 10, 4));
+        req.setWeightKg(new BigDecimal("80.50"));
+
+        UserProfile profile = new UserProfile();
+        profile.setId(1L);
+        profile.setCurrentWeightKg(new BigDecimal("81.20"));
+
+        UserGoals goals = new UserGoals();
+        goals.setId(1L);
+        goals.setCurrentWeightKg(81.20);
+
+        when(repository.save(any(BodyMeasurement.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+        when(userProfileRepository.findByUser(user)).thenReturn(Optional.of(profile));
+        when(userGoalsRepository.findByUser(user)).thenReturn(Optional.of(goals));
+
+        service.create(user, req);
+
+        assertThat(profile.getCurrentWeightKg()).isEqualByComparingTo("80.50");
+        assertThat(goals.getCurrentWeightKg()).isEqualTo(80.50);
+
+        verify(userProfileRepository).save(profile);
+        verify(userGoalsRepository).save(goals);
     }
 
     // ============================================================
