@@ -50,6 +50,7 @@ public class RecipeController {
         String username = userDetails.getUsername();
 
         // Парсим sort: "name,asc" → Sort
+        // Маппим фронтовые имена в SQL-имена (для native query)
         Sort sortObj = Sort.by(Sort.Direction.ASC, "name");
         if (sort != null && !sort.isBlank()) {
             String[] parts = sort.split(",");
@@ -57,7 +58,15 @@ public class RecipeController {
             Sort.Direction dir = parts.length > 1 && parts[1].equalsIgnoreCase("desc")
                     ? Sort.Direction.DESC
                     : Sort.Direction.ASC;
-            sortObj = Sort.by(dir, field);
+
+            String sqlField = switch (field) {
+                case "calories" -> "total_calories";
+                case "protein" -> "total_proteins";
+                case "name" -> "name";
+                default -> "name";
+            };
+
+            sortObj = Sort.by(dir, sqlField);
         }
 
         Page<RecipeDto> recipes = recipeService.getAllRecipesByUser(

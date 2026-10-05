@@ -29,14 +29,14 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     default List<Recipe> findPublicRecipes() {
         return findByVisibility(RecipeVisibility.PUBLIC);
     }
-    @Query(value = "SELECT * FROM dmitriy.recipes r " +
+    @Query(value = "SELECT * FROM recipes r " +
             "WHERE r.user_id = :userId " +
             "AND (:query IS NULL OR r.name_lower LIKE CONCAT('%', :query, '%')) " +
             "AND (:category IS NULL OR r.category = :category) " +
             "AND (:minCal IS NULL OR r.total_calories >= :minCal) " +
             "AND (:maxCal IS NULL OR r.total_calories <= :maxCal) " +
             "AND (:minProt IS NULL OR r.total_proteins >= :minProt)",
-            countQuery = "SELECT COUNT(*) FROM dmitriy.recipes r " +
+            countQuery = "SELECT COUNT(*) FROM recipes r " +
                     "WHERE r.user_id = :userId " +
                     "AND (:query IS NULL OR r.name_lower LIKE CONCAT('%', :query, '%')) " +
                     "AND (:category IS NULL OR r.category = :category) " +
