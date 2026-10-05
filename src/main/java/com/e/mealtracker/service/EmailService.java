@@ -35,6 +35,53 @@ public class EmailService {
             log.error("Failed to send password reset email to {}: {}", toEmail, e.getMessage());
             // Не пробрасываем — endpoint вернёт 204, письмо могло не дойти
         }
+
+    }
+    /**
+     * Отправка фидбека от пользователя.
+     * Идёт на адрес support-почты (тот же fromEmail, если не задан отдельный).
+     *
+     * @param fromUsername   имя залогиненного пользователя
+     * @param fromUserEmail  email пользователя из профиля (может быть null)
+     * @param contactEmail   email, указанный в форме (может быть null)
+     * @param message        текст фидбека
+     */
+    public void sendFeedback(String fromUsername,
+                             String fromUserEmail,
+                             String contactEmail,
+                             String message) {
+        try {
+            SimpleMailMessage mail = new SimpleMailMessage();
+            mail.setFrom(fromEmail);
+            mail.setTo(fromEmail);   // шлём себе
+            mail.setSubject("Фидбек от " + fromUsername + " — Баланс");
+            mail.setText(buildFeedbackText(fromUsername, fromUserEmail, contactEmail, message));
+            mailSender.send(mail);
+            log.info("Feedback sent from user '{}'", fromUsername);
+        } catch (Exception e) {
+            log.error("Failed to send feedback from '{}': {}", fromUsername, e.getMessage());
+        }
+    }
+
+    private String buildFeedbackText(String username,
+                                     String userEmail,
+                                     String contactEmail,
+                                     String message) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Фидбек от пользователя приложения «Баланс».\n\n");
+        sb.append("Username: ").append(username).append("\n");
+        sb.append("Email в профиле: ")
+                .append(userEmail != null ? userEmail : "—")
+                .append("\n");
+        sb.append("Email для связи (указан в форме): ")
+                .append(contactEmail != null && !contactEmail.isBlank() ? contactEmail : "—")
+                .append("\n\n");
+        sb.append("Сообщение:\n");
+        sb.append("---\n");
+        sb.append(message).append("\n");
+        sb.append("---\n\n");
+        sb.append("Отправлено: ").append(java.time.LocalDateTime.now()).append("\n");
+        return sb.toString();
     }
 
     private String buildResetText(String token) {
@@ -47,4 +94,5 @@ public class EmailService {
                 + "Если вы не запрашивали сброс — просто проигнорируйте это письмо.\n\n"
                 + "— Баланс";
     }
+
 }
