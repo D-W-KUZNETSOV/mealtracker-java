@@ -41,6 +41,7 @@ public class RecipeService {
         // 1. Создаём рецепт без КБЖУ
         Recipe recipe = new Recipe();
         recipe.setName(request.getName());
+        recipe.setNameLower(request.getName().toLowerCase());   // 🆕
         recipe.setUser(user);
         recipe.setDescription(request.getDescription());
         recipe.setImageUrl(request.getImageUrl());
@@ -238,6 +239,7 @@ public class RecipeService {
 
         // 2. Обновляем простые поля
         recipe.setName(request.getName());
+        recipe.setNameLower(request.getName().toLowerCase());   // 🆕
         recipe.setDescription(request.getDescription());
         recipe.setImageUrl(request.getImageUrl());
         recipe.setSteps(RecipeDto.serializeSteps(request.getSteps()));
