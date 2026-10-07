@@ -114,6 +114,13 @@ public class RecipeNutritionService {
         dto.setIsMine(recipe.getUser().getId().equals(user.getId()));
         dto.setAuthorUsername(recipe.getUser().getUsername());
 
+        // 🆕 Проверка: есть ли уже копия у юзера
+        recipeRepository.findByUserAndOriginalRecipeId(user, recipe.getId())
+                .ifPresent(copy -> {
+                    dto.setAlreadyCopied(true);
+                    dto.setCopiedRecipeId(copy.getId());
+                });
+
         return dto;
     }
 

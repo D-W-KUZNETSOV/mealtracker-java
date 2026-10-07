@@ -24,9 +24,11 @@ public class RecipeSummaryDto {
 
     private List<String> steps;   // 🆕
 
-    // 🆕 F5 — «Сохранить себе»
+        // 🆕 F5 — «Сохранить себе»
     private Boolean isMine;           // true, если рецепт принадлежит текущему юзеру
     private String authorUsername;    // имя владельца (для отображения «Автор: ...»)
+    private Boolean alreadyCopied;    // 🆕 true, если у юзера уже есть копия
+    private Long copiedRecipeId;      // 🆕 id копии (для перехода)
 
     @Data
     public static class IngredientItemDto {
