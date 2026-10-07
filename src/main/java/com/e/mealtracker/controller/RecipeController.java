@@ -148,6 +148,21 @@ public class RecipeController {
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(recipeService.toggleRecipeVisibility(id, userDetails.getUsername()));
     }
+    /**
+     * Копирует чужой публичный рецепт в личную коллекцию текущего пользователя.
+     * Копия создаётся с visibility = PRIVATE.
+     * Свой рецепт копировать нельзя (400), чужой приватный — нельзя (403).
+     */
+    @PostMapping("/{id}/copy-to-my")
+    @Operation(summary = "Скопировать чужой публичный рецепт себе")
+    public ResponseEntity<RecipeDto> copyToMy(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails.getUsername();
+        RecipeDto copy = recipeService.copyToMy(id, username);
+        log.info("Рецепт скопирован: sourceId={}, username={}", id, username);
+        return ResponseEntity.status(HttpStatus.CREATED).body(copy);
+    }
 
     @PutMapping("/{id}")
     @Operation(summary = "Обновить рецепт")

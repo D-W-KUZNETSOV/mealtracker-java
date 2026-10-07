@@ -87,7 +87,7 @@ class IngredientServiceTest {
     @Test
     @DisplayName("saveIngredient: нового ингредиента сохраняет с переданными полями")
     void shouldCreateNewIngredient() {
-        when(ingredientRepository.findByNameIgnoreCaseAndUsername("Курица", "dmitriy"))
+        when(ingredientRepository.findByNameLowerAndUsername("курица", "dmitriy"))
                 .thenReturn(Optional.empty());
         when(ingredientRepository.save(any(Ingredient.class)))
                 .thenAnswer(inv -> {
@@ -118,7 +118,7 @@ class IngredientServiceTest {
     void shouldUpdateExistingIngredientNutrition() {
         Ingredient existing = ingredient(7L, "Курица (старое имя)", "dmitriy",
                 20.0, 2.0, 1.0);
-        when(ingredientRepository.findByNameIgnoreCaseAndUsername("Курица", "dmitriy"))
+        when(ingredientRepository.findByNameLowerAndUsername("курица", "dmitriy"))
                 .thenReturn(Optional.of(existing));
         when(ingredientRepository.save(any(Ingredient.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -139,14 +139,14 @@ class IngredientServiceTest {
     @Test
     @DisplayName("saveIngredient: поиск идёт по name ignore case + username")
     void shouldSearchIgnoringCase() {
-        when(ingredientRepository.findByNameIgnoreCaseAndUsername("курица", "dmitriy"))
-                .thenReturn(Optional.of(ingredient(7L, "Курица", "dmitriy", 20.0, 2.0, 1.0)));
+        when(ingredientRepository.findByNameLowerAndUsername("курица", "dmitriy"))
+                .thenReturn(Optional.of(ingredient(7L, "курица", "dmitriy", 20.0, 2.0, 1.0)));
         when(ingredientRepository.save(any(Ingredient.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
 
         ingredientService.saveIngredient(createRequest("курица", 1.0, 1.0, 1.0), "dmitriy");
 
-        verify(ingredientRepository).findByNameIgnoreCaseAndUsername("курица", "dmitriy");
+        verify(ingredientRepository).findByNameLowerAndUsername("курица", "dmitriy");
     }
 
     // ============================================================

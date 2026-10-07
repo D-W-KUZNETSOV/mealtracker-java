@@ -92,12 +92,12 @@ class DataInitializerTest {
     }
 
     private void mockSharedIngredientsExist() {
-        when(ingredientRepository.findByNameIgnoreCaseAndUsername(
-                eq("Куриная грудка"), eq(Ingredient.SYSTEM_USERNAME)))
-                .thenReturn(Optional.of(createIngredient("Куриная грудка")));
+        when(ingredientRepository.findByNameLowerAndUsername(
+                eq("куриная грудка (сырая)"), eq(Ingredient.SYSTEM_USERNAME)))
+                .thenReturn(Optional.of(createIngredient("Куриная грудка (сырая)")));
 
-        when(ingredientRepository.findByNameIgnoreCaseAndUsername(
-                eq("Гречка варёная"), eq(Ingredient.SYSTEM_USERNAME)))   // ← ИСПРАВЛЕНО
+        when(ingredientRepository.findByNameLowerAndUsername(
+                eq("гречка варёная"), eq(Ingredient.SYSTEM_USERNAME)))
                 .thenReturn(Optional.of(createIngredient("Гречка варёная")));
     }
 
@@ -206,7 +206,7 @@ class DataInitializerTest {
         dataInitializer.run();
 
         verify(ingredientRepository, never())
-                .findByNameIgnoreCaseAndUsername(anyString(), anyString());
+                .findByNameLowerAndUsername(anyString(), anyString());
         verify(ingredientRepository, never()).save(any(Ingredient.class));
         verify(recipeRepository, never()).findByNameAndUser(anyString(), any(User.class));
     }
@@ -233,8 +233,8 @@ class DataInitializerTest {
 
         verify(recipeRepository).findByNameAndUser(anyString(), eq(demoUser));
         verify(ingredientRepository, times(1))
-                .findByNameIgnoreCaseAndUsername(
-                        eq("Куриная грудка"), eq(Ingredient.SYSTEM_USERNAME));
+                .findByNameLowerAndUsername(
+                        eq("куриная грудка (сырая)"), eq(Ingredient.SYSTEM_USERNAME));
     }
 
 

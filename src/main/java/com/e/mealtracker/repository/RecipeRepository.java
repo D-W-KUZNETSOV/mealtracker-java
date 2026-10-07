@@ -24,6 +24,9 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
     Optional<Recipe> findByNameAndUser(String name, User user);
 
+    /** 🆕 Idempotency F5 — найти копию оригинала у юзера */
+    Optional<Recipe> findByUserAndOriginalRecipeId(User user, Long originalRecipeId);
+
     List<Recipe> findByVisibility(RecipeVisibility visibility);
 
     default List<Recipe> findPublicRecipes() {

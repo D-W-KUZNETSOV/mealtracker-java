@@ -3,6 +3,8 @@ package com.e.mealtracker.domain;
 import com.e.mealtracker.util.UnitType;
 import jakarta.persistence.*;
 import lombok.*;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 
 @Entity
 @Table(name = "ingredients")
@@ -48,6 +50,17 @@ public class Ingredient {
 
     @Column(name = "category", length = 50)
     private String category = "OTHER";
+
+    @Column(name = "name_lower", nullable = false)
+    private String nameLower;
+
+    @PrePersist
+    @PreUpdate
+    public void updateNameLower() {
+        if (name != null) {
+            this.nameLower = name.toLowerCase();
+        }
+    }
 
     public double calculateCaloriesPer100g() {
         // Если калории заданы явно — используем их

@@ -86,8 +86,8 @@ public class IngredientController {
         if (query == null || query.isBlank()) {
             list = ingredientRepository.findAllByUsername(Ingredient.SYSTEM_USERNAME);
         } else {
-            list = ingredientRepository.findByNameIgnoreCaseContainingAndUsername(
-                    query, Ingredient.SYSTEM_USERNAME);
+            list = ingredientRepository.findByNameLowerContainingAndUsername(
+                    query.toLowerCase(), Ingredient.SYSTEM_USERNAME);
         }
         return list.stream().map(this::toDto).toList();
     }

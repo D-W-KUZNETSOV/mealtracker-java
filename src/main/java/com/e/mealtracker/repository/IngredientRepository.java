@@ -11,14 +11,15 @@ public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
     // ✅ базовые ингредиенты — по константе
     List<Ingredient> findAllByUsername(String username);
 
-    Optional<Ingredient> findByNameIgnoreCaseAndUsername(String name, String username);
+    // 🆕 поиск по name_lower вместо IgnoreCase (кириллица!)
+    Optional<Ingredient> findByNameLowerAndUsername(String nameLower, String username);
 
     Optional<Ingredient> findByIdAndUsername(Long id, String username);
 
     boolean existsByIdAndUsername(Long id, String username);
 
-    // ✅ поиск по базовым
-    List<Ingredient> findByNameIgnoreCaseContainingAndUsername(String query, String username);
+    // 🆕 поиск по name_lower для базовых
+    List<Ingredient> findByNameLowerContainingAndUsername(String query, String username);
 
     // ✅ все ингредиенты пользователя: базовые + его личные
     default List<Ingredient> findAllForUser(String username) {
@@ -29,6 +30,4 @@ public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
 
     // для delete в сервисе
     void delete(Ingredient ingredient);
-
-
 }

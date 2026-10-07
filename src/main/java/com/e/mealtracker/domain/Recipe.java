@@ -76,6 +76,10 @@ public class Recipe {
     @Column(name = "steps", columnDefinition = "TEXT")
     private String steps;
 
+    /** 🆕 ID оригинала — если это копия. NULL для собственных рецептов. */
+    @Column(name = "original_recipe_id")
+    private Long originalRecipeId;
+
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecipeIngredient> ingredients = new ArrayList<>();
 

@@ -21,7 +21,12 @@ public class RecipeSummaryDto {
     private String category;   // 🆕
     private Integer servings;
     private Double servingSizeGrams;
+
     private List<String> steps;   // 🆕
+
+    // 🆕 F5 — «Сохранить себе»
+    private Boolean isMine;           // true, если рецепт принадлежит текущему юзеру
+    private String authorUsername;    // имя владельца (для отображения «Автор: ...»)
 
     @Data
     public static class IngredientItemDto {

@@ -12,6 +12,7 @@ import com.e.mealtracker.dto.RecipeDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.domain.Specification;
@@ -20,6 +21,7 @@ import org.springframework.data.jpa.domain.Specification;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -315,6 +317,120 @@ public class RecipeService {
         recipe = recipeRepository.save(recipe);
 
         return RecipeDto.fromEntity(recipe);
+    }
+    /**
+     * Копирует чужой публичный рецепт в личную коллекцию текущего пользователя.
+     * Копия создаётся с visibility = PRIVATE.
+     * Базовые ингредиенты переиспользуются, личные — ищутся у текущего юзера
+     * по name_lower, иначе копируются как личные.
+     */
+    @Transactional
+    public RecipeDto copyToMy(Long recipeId, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+
+        Recipe source = recipeRepository.findById(recipeId)
+                .orElseThrow(() -> new RecipeNotFoundException(
+                        "Рецепт с ID " + recipeId + " не найден"));
+
+        // 1. Нельзя копировать свой рецепт
+        if (source.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Это ваш рецепт — копировать не нужно");
+        }
+
+        // 2. Нельзя копировать приватный чужой
+        if (source.getVisibility() != RecipeVisibility.PUBLIC) {
+            throw new AccessDeniedException("Рецепт приватный и недоступен для копирования");
+        }
+
+        // 3. 🆕 Idempotency — если копия уже есть, вернуть её
+        Optional<Recipe> existing = recipeRepository
+                .findByUserAndOriginalRecipeId(user, source.getId());
+        if (existing.isPresent()) {
+            log.info("Рецепт '{}' уже скопирован юзером {} (id копии {})",
+                    source.getName(), username, existing.get().getId());
+            return RecipeDto.fromEntity(existing.get());
+        }
+
+        // 4. Создаём копию с базовыми полями
+        Recipe copy = new Recipe();
+        copy.setName(source.getName());
+        copy.setNameLower(source.getName().toLowerCase());
+        copy.setOriginalRecipeId(source.getId());   // 🆕 — запоминаем оригинал
+        copy.setUser(user);
+
+
+        // 4. Копируем ингредиенты
+        for (RecipeIngredient srcRi : source.getIngredients()) {
+            Ingredient resolved = resolveIngredientForUser(srcRi.getIngredient(), username);
+
+            RecipeIngredient newRi = new RecipeIngredient();
+            newRi.setRecipe(copy);
+            newRi.setIngredient(resolved);
+            newRi.setWeightInGrams(srcRi.getWeightInGrams());
+
+            copy.getIngredients().add(newRi);
+        }
+
+        // 5. Пересчитываем КБЖУ (как в saveRecipe)
+        copy.setTotalCalories(copy.calculateTotalCalories());
+        copy.setTotalProteins(copy.calculateTotalProteins());
+        copy.setTotalFats(copy.calculateTotalFats());
+        copy.setTotalCarbs(copy.calculateTotalCarbs());
+
+        BigDecimal totalWeight = copy.getIngredients().stream()
+                .map(ri -> BigDecimal.valueOf(ri.getWeightInGrams()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (totalWeight.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal factor = BigDecimal.valueOf(100)
+                    .divide(totalWeight, 10, RoundingMode.HALF_UP);
+
+            copy.setCaloriesPer100g(copy.getTotalCalories().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+            copy.setProteinPer100g(copy.getTotalProteins().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+            copy.setFatPer100g(copy.getTotalFats().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+            copy.setCarbsPer100g(copy.getTotalCarbs().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+        } else {
+            copy.setCaloriesPer100g(BigDecimal.ZERO);
+            copy.setProteinPer100g(BigDecimal.ZERO);
+            copy.setFatPer100g(BigDecimal.ZERO);
+            copy.setCarbsPer100g(BigDecimal.ZERO);
+        }
+
+        // 6. Один save — cascade сохранит RecipeIngredient
+        Recipe saved = recipeRepository.save(copy);
+        log.info("Рецепт '{}' скопирован юзером {}", source.getName(), username);
+        return RecipeDto.fromEntity(saved);
+    }
+
+    /**
+     * Возвращает ингредиент, который можно использовать в рецепте текущего юзера.
+     * Базовый → как есть.
+     * Личный чужой → ищем у текущего по name_lower, если нет — копируем.
+     */
+    private Ingredient resolveIngredientForUser(Ingredient src, String username) {
+        // Базовый — переиспользуем
+        if (src.isBase()) {
+            return src;
+        }
+
+        // Личный — ищем у текущего по name_lower
+        return ingredientRepository
+                .findByNameLowerAndUsername(src.getNameLower(), username)
+                .orElseGet(() -> {
+                    Ingredient copy = new Ingredient();
+                    copy.setName(src.getName());
+                    copy.setUsername(username);
+                    copy.setFatsPer100g(src.getFatsPer100g());
+                    copy.setProteinsPer100g(src.getProteinsPer100g());
+                    copy.setCarbsPer100g(src.getCarbsPer100g());
+                    copy.setCaloriesPer100g(src.getCaloriesPer100g());
+                    copy.setUnitType(src.getUnitType());
+                    copy.setUnitWeightGrams(src.getUnitWeightGrams());
+                    copy.setCategory(src.getCategory());
+                    // name_lower заполнит @PrePersist
+                    return ingredientRepository.save(copy);
+                });
     }
 
 

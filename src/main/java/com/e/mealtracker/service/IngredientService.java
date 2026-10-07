@@ -30,7 +30,7 @@ public class IngredientService {
     }
 
     public Ingredient saveIngredient(CreateIngredientRequest request, String username) {
-        return ingredientRepository.findByNameIgnoreCaseAndUsername(request.getName(), username)
+        return ingredientRepository.findByNameLowerAndUsername(request.getName().toLowerCase(), username)
                 .map(existing -> {
                     existing.setProteinsPer100g(request.getProteinsPer100g());
                     existing.setFatsPer100g(request.getFatsPer100g());

@@ -110,6 +110,10 @@ public class RecipeNutritionService {
         dto.setServingSizeGrams(recipe.getServingSizeGrams());
         dto.setSteps(RecipeDto.parseSteps(recipe.getSteps()));   // 🆕
 
+        // 🆕 F5 — «Сохранить себе»
+        dto.setIsMine(recipe.getUser().getId().equals(user.getId()));
+        dto.setAuthorUsername(recipe.getUser().getUsername());
+
         return dto;
     }
 

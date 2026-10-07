@@ -109,15 +109,13 @@ public class DataInitializer implements CommandLineRunner {
                     newRecipe.setName(recipeName);
                     newRecipe.setUser(user);
                     newRecipe.setVisibility(RecipeVisibility.PUBLIC);
+                    newRecipe.setNameLower(recipeName.toLowerCase());
                     log.info("Creating new recipe: {}", recipeName);
                     return recipeRepository.save(newRecipe);
                 });
 
-        Optional<Ingredient> chickenOpt = ingredientRepository
-                .findByNameIgnoreCaseAndUsername("Куриная грудка", Ingredient.SYSTEM_USERNAME);
-        Optional<Ingredient> buckwheatOpt = ingredientRepository
-                .findByNameIgnoreCaseAndUsername("Гречка варёная", Ingredient.SYSTEM_USERNAME);
-
+        Optional<Ingredient> chickenOpt = findIngredient("Куриная грудка (сырая)");
+        Optional<Ingredient> buckwheatOpt = findIngredient("Гречка варёная");
         if (chickenOpt.isEmpty() || buckwheatOpt.isEmpty()) {
             log.warn("Required ingredients not found, skipping recipe creation.");
             return;
@@ -145,6 +143,10 @@ public class DataInitializer implements CommandLineRunner {
                     ingredient.getName(), recipe.getName());
         }
 
+    }
+    private Optional<Ingredient> findIngredient(String name) {
+        return ingredientRepository.findByNameLowerAndUsername(
+                name.toLowerCase(), Ingredient.SYSTEM_USERNAME);
     }
 
 }
