@@ -17,6 +17,9 @@ import java.math.MathContext;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import com.e.mealtracker.domain.Ingredient;
+import com.e.mealtracker.dto.FoodPortionRequest;
+import com.e.mealtracker.repository.IngredientRepository;
 
 @Slf4j
 @Service
@@ -31,6 +34,7 @@ public class StatsService {
     private final RecipeNutritionService recipeNutritionService;
     private final MealPlanRepository mealPlanRepository;
     private final MealPlanItemRepository mealPlanItemRepository;
+    private final IngredientRepository ingredientRepository;
 
 
     /**
@@ -39,9 +43,22 @@ public class StatsService {
      * @param user текущий пользователь (должен быть уже аутентифицирован)
      */
     @Transactional
-    public DailyStatsDto addPortionAndReturnTodayStats(RecipePortionRequest portion, User user) {
-        LocalDate today = LocalDate.now();
+    public DailyStatsDto addPortionAndReturnTodayStats(FoodPortionRequest portion, User user) {
+        // 1. Валидация: ровно один из recipeId / ingredientId
+        boolean hasRecipe = portion.getRecipeId() != null;
+        boolean hasIngredient = portion.getIngredientId() != null;
 
+        if (hasRecipe == hasIngredient) {
+            throw new IllegalArgumentException(
+                    "Укажите либо recipeId, либо ingredientId (ровно одно)");
+        }
+
+        if (portion.getWeightInGrams() <= 0) {
+            throw new InvalidPortionWeightException(portion.getWeightInGrams());
+        }
+
+        // 2. DailyLog
+        LocalDate today = LocalDate.now();
         DailyLog log = dailyLogRepository.findByUserAndLogDate(user, today)
                 .orElseGet(() -> {
                     DailyLog newLog = new DailyLog();
@@ -50,45 +67,47 @@ public class StatsService {
                     return dailyLogRepository.save(newLog);
                 });
 
-        Recipe recipe = recipeRepository.findById(portion.getRecipeId())
-                .orElseThrow(() -> new RecipeNotFoundException("Рецепт с ID " + portion.getRecipeId() + " не найден"));
+        // 3. Готовим Per100g + имя + ссылку
+        RecipeNutritionService.Per100g per100g;
+        String itemName;
+        Recipe recipe = null;
+        Ingredient ingredient = null;
 
-        if (portion.getWeightInGrams() <= 0) {
-            throw new InvalidPortionWeightException(portion.getWeightInGrams());
+        if (hasRecipe) {
+            recipe = recipeRepository.findById(portion.getRecipeId())
+                    .orElseThrow(() -> new RecipeNotFoundException(
+                            "Рецепт с ID " + portion.getRecipeId() + " не найден"));
+            per100g = recipeNutritionService.calculatePer100g(recipe);
+            itemName = recipe.getName();
+        } else {
+            ingredient = ingredientRepository.findById(portion.getIngredientId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Ингредиент с ID " + portion.getIngredientId() + " не найден"));
+            per100g = recipeNutritionService.per100gFromIngredient(ingredient);
+            itemName = ingredient.getName();
         }
 
-        // Считаем per-100g из totalCalories и общего веса ингредиентов
-        RecipeNutritionService.Per100g per100g =
-                recipeNutritionService.calculatePer100g(recipe);
-
+        // 4. Расчёт на порцию
         RecipeNutritionService.Per100g forPortion =
                 recipeNutritionService.calculateForPortion(per100g, portion.getWeightInGrams());
 
-        BigDecimal caloriesPer100g = per100g.calories();
-        BigDecimal proteinPer100g  = per100g.protein();
-        BigDecimal fatPer100g      = per100g.fat();
-        BigDecimal carbsPer100g    = per100g.carbs();
-
-        BigDecimal calories = forPortion.calories();
-        BigDecimal protein  = forPortion.protein();
-        BigDecimal fat      = forPortion.fat();
-        BigDecimal carbs    = forPortion.carbs();
-
+        // 5. FoodEntry
         FoodEntry entry = new FoodEntry();
         entry.setDailyLog(log);
-        entry.setRecipe(recipe);
-        entry.setRecipeName(recipe.getName());
+        entry.setRecipe(recipe);              // null для ингредиента
+        entry.setIngredient(ingredient);      // null для рецепта
+        entry.setItemName(itemName);
         entry.setWeightInGrams(portion.getWeightInGrams());
 
-        entry.setCaloriesPer100g(caloriesPer100g);
-        entry.setProteinPer100g(proteinPer100g);
-        entry.setFatPer100g(fatPer100g);
-        entry.setCarbsPer100g(carbsPer100g);
+        entry.setCaloriesPer100g(per100g.calories());
+        entry.setProteinPer100g(per100g.protein());
+        entry.setFatPer100g(per100g.fat());
+        entry.setCarbsPer100g(per100g.carbs());
 
-        entry.setCalories(calories);
-        entry.setProtein(protein);
-        entry.setFat(fat);
-        entry.setCarbs(carbs);
+        entry.setCalories(forPortion.calories());
+        entry.setProtein(forPortion.protein());
+        entry.setFat(forPortion.fat());
+        entry.setCarbs(forPortion.carbs());
 
         foodEntryRepository.save(entry);
 
@@ -96,7 +115,6 @@ public class StatsService {
 
         return calculateStatsForDate(today, user);
     }
-
 
     @Transactional(readOnly = true)
     public DailyStatsDto getTodayStats(User user) {
@@ -241,7 +259,7 @@ public class StatsService {
                 RecipeNutritionService.Per100g forPortion = recipeNutritionService.calculateForPortion(per100g, portionWeight);
 
                 entry.setRecipe(recipe);
-                entry.setRecipeName(recipe.getName());
+                entry.setItemName(recipe.getName());
                 entry.setWeightInGrams(portionWeight);
                 entry.setCaloriesPer100g(per100g.calories());
                 entry.setProteinPer100g(per100g.protein());
@@ -262,7 +280,7 @@ public class StatsService {
                 double carbsPer100 = ing.getCarbsPer100g() != null ? ing.getCarbsPer100g() : 0;
 
                 entry.setRecipe(null);
-                entry.setRecipeName(ing.getName());
+                entry.setItemName(ing.getName());
                 entry.setWeightInGrams(weight);
                 entry.setCaloriesPer100g(BigDecimal.valueOf(calsPer100));
                 entry.setProteinPer100g(BigDecimal.valueOf(protPer100));

@@ -2,7 +2,7 @@ package com.e.mealtracker.controller;
 
 import com.e.mealtracker.dto.AddFromPlanRequest;
 import com.e.mealtracker.dto.DailyStatsDto;
-import com.e.mealtracker.dto.RecipePortionRequest;
+import com.e.mealtracker.dto.FoodPortionRequest;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.repository.UserRepository;
 import com.e.mealtracker.service.StatsService;
@@ -33,9 +33,9 @@ public class StatsController {
      * Считает КБЖУ порции, обновляет дневные итоги и возвращает обновлённую статистику за сегодня (200 OK).
      */
     @PostMapping("/daily/add")
-    @Operation(summary = "Добавить порцию рецепта в дневной лог и получить обновлённую статистику")
+    @Operation(summary = "Добавить порцию рецепта или ингредиента в дневной лог")
     public ResponseEntity<DailyStatsDto> addPortion(
-            @RequestBody RecipePortionRequest portion,
+            @RequestBody FoodPortionRequest portion,
             @AuthenticationPrincipal UserDetails userDetails) {
         User user = getUser(userDetails);
         DailyStatsDto stats = statsService.addPortionAndReturnTodayStats(portion, user);

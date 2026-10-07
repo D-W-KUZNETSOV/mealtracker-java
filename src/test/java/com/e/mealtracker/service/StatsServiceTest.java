@@ -6,7 +6,7 @@ import com.e.mealtracker.domain.Recipe;
 import com.e.mealtracker.domain.RecipeIngredient;
 import com.e.mealtracker.domain.UserGoals;
 import com.e.mealtracker.dto.DailyStatsDto;
-import com.e.mealtracker.dto.RecipePortionRequest;
+import com.e.mealtracker.dto.FoodPortionRequest;
 import com.e.mealtracker.dto.TargetProteinResponse;
 import com.e.mealtracker.entity.Role;
 import com.e.mealtracker.entity.User;
@@ -112,8 +112,8 @@ class StatsServiceTest {
         );
     }
 
-    private RecipePortionRequest portion(Long recipeId, double grams) {
-        RecipePortionRequest req = new RecipePortionRequest();
+    private FoodPortionRequest portion(Long recipeId, double grams) {
+        FoodPortionRequest req = new FoodPortionRequest();
         req.setRecipeId(recipeId);
         req.setWeightInGrams(grams);
         return req;
@@ -166,7 +166,7 @@ class StatsServiceTest {
         assertThat(savedEntry.getWeightInGrams()).isEqualTo(200.0);
         assertThat(savedEntry.getDailyLog()).isSameAs(log);
         assertThat(savedEntry.getRecipe()).isSameAs(recipe);
-        assertThat(savedEntry.getRecipeName()).isEqualTo("Обед");
+        assertThat(savedEntry.getItemName()).isEqualTo("Обед");
         assertThat(savedEntry.getCalories()).isEqualByComparingTo(forPortion.calories());
 
         assertThat(stats).isNotNull();

@@ -9,7 +9,8 @@ import lombok.ToString;
 public class FoodEntryDto {
 
     private final Long id;
-    private final String recipeName;   // может быть null (если рецепт удалён и recipeName пусто)
+    private final String itemName;
+    private final Long ingredientId;   // 🆕 null = рецепт (или запись без ингредиента)
     private final double weightInGrams;
     private final double calories;
     private final double proteins;
@@ -17,10 +18,11 @@ public class FoodEntryDto {
     private final double carbs;
     private final double servings;
 
-    public FoodEntryDto(Long id, String recipeName, double weightInGrams,
-                        double calories, double proteins, double fats, double carbs,double servings) {
+    public FoodEntryDto(Long id, String itemName, Long ingredientId, double weightInGrams,
+                        double calories, double proteins, double fats, double carbs, double servings) {
         this.id = id;
-        this.recipeName = recipeName;
+        this.itemName = itemName;
+        this.ingredientId = ingredientId;
         this.weightInGrams = Math.round(weightInGrams * 10.0) / 10.0;
         this.calories = Math.round(calories * 10.0) / 10.0;
         this.proteins = Math.round(proteins * 10.0) / 10.0;
@@ -30,17 +32,28 @@ public class FoodEntryDto {
     }
 
     public static FoodEntryDto fromEntity(FoodEntry entry) {
-        String name = entry.getRecipeName();
-        // Fallback: если recipeName пусто, но рецепт есть — берём имя оттуда
+        // 🆕 Теперь имя хранится в itemName (универсальное — и рецепт, и ингредиент)
+        String name = entry.getItemName();
+
+        // Fallback: если itemName пусто, но рецепт есть — берём имя оттуда
         if (name == null && entry.getRecipe() != null) {
             name = entry.getRecipe().getName();
+        }
+        // Fallback: если itemName пусто, но ингредиент есть — берём имя оттуда
+        if (name == null && entry.getIngredient() != null) {
+            name = entry.getIngredient().getName();
         }
         // Если вообще ничего — "Без названия"
         if (name == null) {
             name = "Без названия";
         }
 
-        // Считаем количество порций
+        // 🆕 ingredientId — если запись про ингредиент
+        Long ingredientId = entry.getIngredient() != null
+                ? entry.getIngredient().getId()
+                : null;
+
+        // Считаем количество порций (только для рецептов)
         double servings = 0;
         if (entry.getRecipe() != null && entry.getRecipe().getServingSizeGrams() > 0) {
             servings = entry.getWeightInGrams() / entry.getRecipe().getServingSizeGrams();
@@ -49,6 +62,7 @@ public class FoodEntryDto {
         return new FoodEntryDto(
                 entry.getId(),
                 name,
+                ingredientId,
                 entry.getWeightInGrams(),
                 entry.getCalories().doubleValue(),
                 entry.getProtein().doubleValue(),

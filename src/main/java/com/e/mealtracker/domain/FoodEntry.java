@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"dailyLog", "recipe"})
+@ToString(exclude = {"dailyLog", "recipe", "ingredient"})
 
 public class FoodEntry {
 
@@ -27,8 +27,12 @@ public class FoodEntry {
     @JoinColumn(name = "recipe_id")
     private Recipe recipe;
 
-    @Column(name = "recipe_name", length = 255)
-    private String recipeName;
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "ingredient_id")
+    private Ingredient ingredient;
+
+    @Column(name = "item_name", length = 255)
+    private String itemName;
 
 
 

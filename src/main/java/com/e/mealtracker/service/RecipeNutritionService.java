@@ -150,6 +150,22 @@ public class RecipeNutritionService {
                 safeDivide(recipe.getTotalCarbs(), totalWeight, hundred)
         );
     }
+    /**
+     * Возвращает КБЖУ на 100 г для ингредиента (продукта).
+     * Использует поля Ingredient: caloriesPer100g (или расчёт из БЖУ) + белки/жиры/углеводы.
+     */
+    public Per100g per100gFromIngredient(Ingredient ing) {
+        if (ing == null) return zero();
+
+        double cals = ing.calculateCaloriesPer100g();
+
+        return new Per100g(
+                BigDecimal.valueOf(cals).setScale(2, RoundingMode.HALF_UP),
+                BigDecimal.valueOf(safe(ing.getProteinsPer100g())).setScale(2, RoundingMode.HALF_UP),
+                BigDecimal.valueOf(safe(ing.getFatsPer100g())).setScale(2, RoundingMode.HALF_UP),
+                BigDecimal.valueOf(safe(ing.getCarbsPer100g())).setScale(2, RoundingMode.HALF_UP)
+        );
+    }
 
     public Per100g calculateForPortion(Per100g per100g, double weightG) {
         if (per100g == null || weightG <= 0) return zero();
@@ -184,6 +200,7 @@ public class RecipeNutritionService {
                 BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
         );
     }
+
 
     private double safe(Double value) {
         return value != null ? value : 0.0;

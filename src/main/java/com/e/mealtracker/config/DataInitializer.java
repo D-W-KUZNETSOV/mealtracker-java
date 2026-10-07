@@ -124,6 +124,13 @@ public class DataInitializer implements CommandLineRunner {
         ensureRecipeIngredient(lunch, chickenOpt.get(), 200.0);
         ensureRecipeIngredient(lunch, buckwheatOpt.get(), 150.0);
 
+// 🆕 Пересчёт КБЖУ после добавления ингредиентов
+        lunch.setTotalCalories(lunch.calculateTotalCalories());
+        lunch.setTotalProteins(lunch.calculateTotalProteins());
+        lunch.setTotalFats(lunch.calculateTotalFats());
+        lunch.setTotalCarbs(lunch.calculateTotalCarbs());
+        recipeRepository.save(lunch);
+
         log.info("Recipe '{}' has {} ingredients", recipeName,
                 recipeIngredientRepository.countByRecipe(lunch));
     }
@@ -136,6 +143,7 @@ public class DataInitializer implements CommandLineRunner {
             ri.setIngredient(ingredient);
             ri.setWeightInGrams(weightInGrams);
             recipeIngredientRepository.save(ri);
+            recipe.getIngredients().add(ri);
             log.debug("Added ingredient '{}' ({}g) to recipe '{}'",
                     ingredient.getName(), weightInGrams, recipe.getName());
         } else {
