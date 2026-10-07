@@ -2,7 +2,6 @@ package com.e.mealtracker.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -19,7 +18,8 @@ public class RegisterRequest {
     @NotBlank(message = "Email is required")
     private String email;
 
-    @NotNull(message = "Date of birth is required")
+    // 🆕 B — дата рождения опциональна при регистрации
+    // Заполняется позже в профиле
     private LocalDate dateOfBirth;
 }
 

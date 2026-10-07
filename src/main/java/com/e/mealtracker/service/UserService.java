@@ -42,9 +42,11 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setRole(Role.USER);
 
-        // Создаём профиль сразу с датой рождения
+        // Создаём профиль (дата рождения опциональна — можно заполнить в профиле)
         UserProfile profile = new UserProfile();
-        profile.setDateOfBirth(request.getDateOfBirth());
+        if (request.getDateOfBirth() != null) {
+            profile.setDateOfBirth(request.getDateOfBirth());
+        }
         profile.setUser(user);
         user.setProfile(profile);
 
