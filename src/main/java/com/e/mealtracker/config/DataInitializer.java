@@ -103,6 +103,8 @@ public class DataInitializer implements CommandLineRunner {
     private void createOrUpdateRecipe(User user) {
         String recipeName = "Обед: курица + гречка";
 
+        boolean[] created = {false};   // хак для лямбды, или просто флаг
+
         Recipe lunch = recipeRepository.findByNameAndUser(recipeName, user)
                 .orElseGet(() -> {
                     Recipe newRecipe = new Recipe();
@@ -110,6 +112,7 @@ public class DataInitializer implements CommandLineRunner {
                     newRecipe.setUser(user);
                     newRecipe.setVisibility(RecipeVisibility.PUBLIC);
                     newRecipe.setNameLower(recipeName.toLowerCase());
+                    created[0] = true;
                     log.info("Creating new recipe: {}", recipeName);
                     return recipeRepository.save(newRecipe);
                 });
@@ -121,21 +124,24 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        ensureRecipeIngredient(lunch, chickenOpt.get(), 200.0);
-        ensureRecipeIngredient(lunch, buckwheatOpt.get(), 150.0);
+        boolean ingredientsAdded =
+                ensureRecipeIngredient(lunch, chickenOpt.get(), 200.0)
+                        | ensureRecipeIngredient(lunch, buckwheatOpt.get(), 150.0);
 
 // 🆕 Пересчёт КБЖУ после добавления ингредиентов
-        lunch.setTotalCalories(lunch.calculateTotalCalories());
-        lunch.setTotalProteins(lunch.calculateTotalProteins());
-        lunch.setTotalFats(lunch.calculateTotalFats());
-        lunch.setTotalCarbs(lunch.calculateTotalCarbs());
-        recipeRepository.save(lunch);
+        if (created[0] || ingredientsAdded) {
+            lunch.setTotalCalories(lunch.calculateTotalCalories());
+            lunch.setTotalProteins(lunch.calculateTotalProteins());
+            lunch.setTotalFats(lunch.calculateTotalFats());
+            lunch.setTotalCarbs(lunch.calculateTotalCarbs());
+            recipeRepository.save(lunch);
+        }
 
         log.info("Recipe '{}' has {} ingredients", recipeName,
                 recipeIngredientRepository.countByRecipe(lunch));
     }
 
-    private void ensureRecipeIngredient(Recipe recipe, Ingredient ingredient, double weightInGrams) {
+    private boolean ensureRecipeIngredient(Recipe recipe, Ingredient ingredient, double weightInGrams) {
         long count = recipeIngredientRepository.countByRecipeAndIngredient(recipe, ingredient);
         if (count == 0) {
             RecipeIngredient ri = new RecipeIngredient();
@@ -146,11 +152,12 @@ public class DataInitializer implements CommandLineRunner {
             recipe.getIngredients().add(ri);
             log.debug("Added ingredient '{}' ({}g) to recipe '{}'",
                     ingredient.getName(), weightInGrams, recipe.getName());
+            return true;   // 🆕
         } else {
             log.debug("Ingredient '{}' already in recipe '{}'",
                     ingredient.getName(), recipe.getName());
+            return false;  // 🆕
         }
-
     }
     private Optional<Ingredient> findIngredient(String name) {
         return ingredientRepository.findByNameLowerAndUsername(

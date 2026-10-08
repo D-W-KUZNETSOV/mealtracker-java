@@ -220,12 +220,8 @@ class StatsServiceTest {
     @Test
     @DisplayName("addPortion: вес <= 0 → InvalidPortionWeightException")
     void shouldThrowWhenWeightNotPositive() {
-        LocalDate today = LocalDate.now();
-        Recipe recipe = recipeWithIngredients(10L, 100.0);
-        DailyLog log = dailyLog(100L, user, today);
-
-        when(dailyLogRepository.findByUserAndLogDate(user, today)).thenReturn(Optional.of(log));
-        when(recipeRepository.findById(10L)).thenReturn(Optional.of(recipe));
+        // Валидация веса происходит ДО обращения к репозиториям,
+        // поэтому моки dailyLogRepository / recipeRepository не нужны.
 
         assertThatThrownBy(() ->
                 statsService.addPortionAndReturnTodayStats(portion(10L, 0.0), user))

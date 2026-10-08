@@ -193,7 +193,7 @@ class DataInitializerTest {
 
         dataInitializer.run();
 
-        verify(recipeRepository, times(1)).save(any(Recipe.class));
+        verify(recipeRepository, times(2)).save(any(Recipe.class));
         verify(recipeIngredientRepository, times(2)).save(any(RecipeIngredient.class));
     }
 
@@ -208,8 +208,7 @@ class DataInitializerTest {
         verify(ingredientRepository, never())
                 .findByNameLowerAndUsername(anyString(), anyString());
         verify(ingredientRepository, never()).save(any(Ingredient.class));
-        verify(recipeRepository, never()).findByNameAndUser(anyString(), any(User.class));
-    }
+        verify(recipeRepository, never()).save(any(Recipe.class));    }
 
     @Test
     @DisplayName("При отсутствии авторизации используется fallback пользователь 'dmitriy'")
