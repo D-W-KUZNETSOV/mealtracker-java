@@ -3,10 +3,13 @@ package com.e.mealtracker.exception;
 import com.e.mealtracker.dto.ApiError;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.exception.JDBCConnectionException;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.jdbc.CannotGetJdbcConnectionException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -17,6 +20,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import com.e.mealtracker.exception.UserAlreadyExistsException;
+
+import java.sql.SQLTransientConnectionException;
 import java.time.Instant;
 import com.e.mealtracker.exception.AccountDeletedException;
 
@@ -145,6 +150,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleDisabled(DisabledException ex, HttpServletRequest request) {
         return build(HttpStatus.FORBIDDEN, "ACCOUNT_DELETED",
                 "Аккаунт удалён. Обратитесь в поддержку для восстановления.", request);
+    }
+    // ================== 503 SERVICE UNAVAILABLE (БД недоступна) ==================
+
+    @ExceptionHandler({
+            CannotGetJdbcConnectionException.class,
+            DataAccessResourceFailureException.class,
+            SQLTransientConnectionException.class,
+            JDBCConnectionException.class
+    })
+    public ResponseEntity<ApiError> handleDbUnavailable(Exception ex,
+                                                        HttpServletRequest request) {
+        log.error("БД недоступна при запросе {}: {}", request.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.SERVICE_UNAVAILABLE, "DB_UNAVAILABLE",
+                "База данных временно недоступна. Попробуйте через минуту.", request);
     }
 
     // ================== Helper ==================
