@@ -15,8 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 import com.e.mealtracker.domain.Ingredient;
 import com.e.mealtracker.dto.FoodPortionRequest;
 import com.e.mealtracker.repository.IngredientRepository;
@@ -300,6 +304,79 @@ public class StatsService {
 
         recalculateDailyTotals(log);
         return added;
+    }
+    /**
+     * Календарь активности за месяц: дни с записями + streak.
+     */
+    @Transactional(readOnly = true)
+    public CalendarResponse getCalendar(User user, String month) {
+        // 1. Парсим месяц
+        YearMonth ym;
+        try {
+            ym = YearMonth.parse(month);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Неверный формат месяца: " + month);
+        }
+
+        LocalDate monthStart = ym.atDay(1);
+        LocalDate monthEnd = ym.atEndOfMonth();
+
+        // 2. Дни с записями
+        List<LocalDate> activeDates = dailyLogRepository
+                .findActiveDatesByUserAndRange(user, monthStart, monthEnd);
+
+        List<String> days = activeDates.stream()
+                .map(LocalDate::toString)
+                .toList();
+
+        // 3. Streak
+        int currentStreak = calculateCurrentStreak(activeDates);
+        int bestStreak = calculateBestStreak(activeDates);
+
+        return new CalendarResponse(
+                month,
+                days,
+                days.size(),
+                currentStreak,
+                bestStreak
+        );
+    }
+
+    private int calculateCurrentStreak(List<LocalDate> dates) {
+        if (dates.isEmpty()) return 0;
+
+        Set<LocalDate> set = new HashSet<>(dates);
+        LocalDate cursor = LocalDate.now();
+
+        // если сегодня нет записи — начинаем со вчера
+        if (!set.contains(cursor)) {
+            cursor = cursor.minusDays(1);
+        }
+
+        int streak = 0;
+        while (set.contains(cursor)) {
+            streak++;
+            cursor = cursor.minusDays(1);
+        }
+        return streak;
+    }
+
+    private int calculateBestStreak(List<LocalDate> dates) {
+        if (dates.isEmpty()) return 0;
+
+        List<LocalDate> sorted = dates.stream().sorted().toList();
+        int best = 1;
+        int current = 1;
+
+        for (int i = 1; i < sorted.size(); i++) {
+            if (sorted.get(i).minusDays(1).equals(sorted.get(i - 1))) {
+                current++;
+                best = Math.max(best, current);
+            } else {
+                current = 1;
+            }
+        }
+        return best;
     }
 }
 

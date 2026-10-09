@@ -1,6 +1,7 @@
 package com.e.mealtracker.controller;
 
 import com.e.mealtracker.dto.AddFromPlanRequest;
+import com.e.mealtracker.dto.CalendarResponse;
 import com.e.mealtracker.dto.DailyStatsDto;
 import com.e.mealtracker.dto.FoodPortionRequest;
 import com.e.mealtracker.entity.User;
@@ -101,6 +102,19 @@ public class StatsController {
                 "added", added,
                 "message", "Добавлено: " + added + " из " + request.getItemIds().size()
         ));
+    }
+    /**
+     * Календарь активности за месяц (дни с записями + streak).
+     * Пример: GET /api/stats/calendar?month=2026-10
+     */
+    @GetMapping("/calendar")
+    @Operation(summary = "Календарь активности за месяц")
+    public ResponseEntity<CalendarResponse> getCalendar(
+            @RequestParam String month,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = getUser(userDetails);
+        CalendarResponse response = statsService.getCalendar(user, month);
+        return ResponseEntity.ok(response);
     }
 }
 
