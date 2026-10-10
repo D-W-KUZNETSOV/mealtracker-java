@@ -138,6 +138,7 @@ public class IngredientController {
                 .fatsPer100g(ingredient.getFatsPer100g())
                 .proteinsPer100g(ingredient.getProteinsPer100g())
                 .carbsPer100g(ingredient.getCarbsPer100g())
+                .category(ingredient.getCategory())
                 // ============ Единицы измерения ============
                 .unitType(ingredient.getUnitType())
                 .unitWeightGrams(ingredient.getUnitWeightGrams())

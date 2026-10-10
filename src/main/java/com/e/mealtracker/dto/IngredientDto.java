@@ -17,8 +17,10 @@ public class IngredientDto {
     private Double proteinsPer100g;
     private Double fatsPer100g;
     private Double carbsPer100g;
+    private String category;
 
     // ============ Единицы измерения ============
     private UnitType unitType;
     private Double unitWeightGrams;
+
 }
