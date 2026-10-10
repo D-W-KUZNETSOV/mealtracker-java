@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -29,6 +31,8 @@ public class RecipeImportService {
     private final IngredientRepository ingredientRepository;
     private final UserRepository userRepository;
     private final RecipeRepository recipeRepository;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     /**
      * Импортирует рецепты из JSON-файла.
@@ -66,6 +70,9 @@ public class RecipeImportService {
         // 2. Импортируем каждый рецепт
         for (ImportRecipeDto recipeDto : recipes) {
             try {
+                // 🆕 Сброс L1 cache Hibernate — иначе findByNameAndUser видит старые сущности
+                entityManager.clear();
+
                 boolean created = importRecipe(recipeDto, username);
                 if (created) {
                     result.setCreated(result.getCreated() + 1);
