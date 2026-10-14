@@ -93,22 +93,52 @@ class DataInitializerTest {
 
     private void mockSharedIngredientsExist() {
         when(ingredientRepository.findByNameLowerAndUsername(
+                eq("овсяные хлопья (сухие)"), eq(Ingredient.SYSTEM_USERNAME)))
+                .thenReturn(Optional.of(createIngredient("Овсяные хлопья (сухие)")));
+
+        when(ingredientRepository.findByNameLowerAndUsername(
+                eq("молоко 3.2%"), eq(Ingredient.SYSTEM_USERNAME)))
+                .thenReturn(Optional.of(createIngredient("Молоко 3.2%")));
+
+        when(ingredientRepository.findByNameLowerAndUsername(
                 eq("куриная грудка (сырая)"), eq(Ingredient.SYSTEM_USERNAME)))
                 .thenReturn(Optional.of(createIngredient("Куриная грудка (сырая)")));
 
         when(ingredientRepository.findByNameLowerAndUsername(
                 eq("гречка варёная"), eq(Ingredient.SYSTEM_USERNAME)))
                 .thenReturn(Optional.of(createIngredient("Гречка варёная")));
+
+        when(ingredientRepository.findByNameLowerAndUsername(
+                eq("творог 5%"), eq(Ingredient.SYSTEM_USERNAME)))
+                .thenReturn(Optional.of(createIngredient("Творог 5%")));
+
+        when(ingredientRepository.findByNameLowerAndUsername(
+                eq("мёд"), eq(Ingredient.SYSTEM_USERNAME)))
+                .thenReturn(Optional.of(createIngredient("Мёд")));
     }
 
     private void mockRecipeExists(User user) {
-        Recipe recipe = new Recipe();
-        recipe.setId(1L);
-        recipe.setName("Обед: курица + гречка");
-        recipe.setUser(user);
+        Recipe breakfast = new Recipe();
+        breakfast.setId(1L);
+        breakfast.setName("Завтрак: овсянка с молоком");
+        breakfast.setUser(user);
 
-        when(recipeRepository.findByNameAndUser(anyString(), eq(user)))
-                .thenReturn(Optional.of(recipe));
+        Recipe lunch = new Recipe();
+        lunch.setId(2L);
+        lunch.setName("Обед: курица + гречка");
+        lunch.setUser(user);
+
+        Recipe dinner = new Recipe();
+        dinner.setId(3L);
+        dinner.setName("Ужин: творог с мёдом");
+        dinner.setUser(user);
+
+        when(recipeRepository.findByNameAndUser(eq("Завтрак: овсянка с молоком"), eq(user)))
+                .thenReturn(Optional.of(breakfast));
+        when(recipeRepository.findByNameAndUser(eq("Обед: курица + гречка"), eq(user)))
+                .thenReturn(Optional.of(lunch));
+        when(recipeRepository.findByNameAndUser(eq("Ужин: творог с мёдом"), eq(user)))
+                .thenReturn(Optional.of(dinner));
     }
 
     private void mockUserExists(String username) {
@@ -193,8 +223,8 @@ class DataInitializerTest {
 
         dataInitializer.run();
 
-        verify(recipeRepository, times(2)).save(any(Recipe.class));
-        verify(recipeIngredientRepository, times(2)).save(any(RecipeIngredient.class));
+        verify(recipeRepository, times(6)).save(any(Recipe.class));
+        verify(recipeIngredientRepository, times(6)).save(any(RecipeIngredient.class));
     }
 
     @Test
@@ -219,21 +249,16 @@ class DataInitializerTest {
         when(userRepository.findByUsername(eq("dmitriy"))).thenReturn(Optional.of(demoUser));
         mockSharedIngredientsExist();
 
-        Recipe recipe = new Recipe();
-        recipe.setId(1L);
-        recipe.setName("Обед: курица + гречка");
-        recipe.setUser(demoUser);
-        when(recipeRepository.findByNameAndUser(anyString(), eq(demoUser)))
-                .thenReturn(Optional.of(recipe));
 
+
+        mockRecipeExists(demoUser);   // ← используем хелпер (3 рецепта)
         mockRecipeIngredientExists();
 
         dataInitializer.run();
 
-        verify(recipeRepository).findByNameAndUser(anyString(), eq(demoUser));
-        verify(ingredientRepository, times(1))
-                .findByNameLowerAndUsername(
-                        eq("куриная грудка (сырая)"), eq(Ingredient.SYSTEM_USERNAME));
+        verify(recipeRepository, times(3)).findByNameAndUser(anyString(), eq(demoUser));
+        verify(ingredientRepository, times(6))
+                .findByNameLowerAndUsername(anyString(), eq(Ingredient.SYSTEM_USERNAME));
     }
 
 
