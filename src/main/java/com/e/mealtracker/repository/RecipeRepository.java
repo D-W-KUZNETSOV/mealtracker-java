@@ -20,6 +20,8 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
     Page<Recipe> findAllByUserAndCategory(User user, MealType category, Pageable pageable);
 
+    List<Recipe> findAllByUserAndCategory(User user, MealType category);
+
     Optional<Recipe> findByIdAndUser(Long id, User user);
 
     Optional<Recipe> findByNameAndUser(String name, User user);
@@ -55,6 +57,8 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
             @Param("maxCal") BigDecimal maxCal,
             @Param("minProt") BigDecimal minProt,
             Pageable pageable);
+
+
 }
 
 

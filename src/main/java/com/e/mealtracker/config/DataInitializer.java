@@ -5,6 +5,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.e.mealtracker.domain.Ingredient;
+import com.e.mealtracker.domain.MealType;
 import com.e.mealtracker.domain.Recipe;
 import com.e.mealtracker.domain.RecipeIngredient;
 import com.e.mealtracker.domain.RecipeVisibility;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -38,11 +40,10 @@ public class DataInitializer implements CommandLineRunner {
     private final RecipeIngredientRepository recipeIngredientRepository;
     private final UserRepository userRepository;
     private final Environment env;
-
     private final PasswordEncoder passwordEncoder;
 
     @Value("${app.demo.default-username:dmitriy}")
-    private String defaultDemoUsername = "dmitriy";  // ← Java-дефолт на случай, если @Value не сработает
+    private String defaultDemoUsername = "dmitriy";
 
     @Value("${app.demo.default-password:demo}")
     private String demoPassword = "demo";
@@ -96,20 +97,39 @@ public class DataInitializer implements CommandLineRunner {
                     return userRepository.save(newUser);
                 });
 
-        createOrUpdateRecipe(user);
+        // 🆕 Три рецепта — завтрак, обед, ужин
+        createRecipeWithIngredients(user, "Завтрак: овсянка с молоком", MealType.BREAKFAST,
+                Map.of(
+                        "Овсяные хлопья (сухие)", 50.0,
+                        "Молоко 3.2%", 200.0
+                ));
+
+        createRecipeWithIngredients(user, "Обед: курица + гречка", MealType.LUNCH,
+                Map.of(
+                        "Куриная грудка (сырая)", 200.0,
+                        "Гречка варёная", 150.0
+                ));
+
+        createRecipeWithIngredients(user, "Ужин: творог с мёдом", MealType.DINNER,
+                Map.of(
+                        "Творог 5%", 200.0,
+                        "Мёд", 10.0
+                ));
+
         log.info("Demo data initialization completed for user: {}", user.getUsername());
     }
 
-    private void createOrUpdateRecipe(User user) {
-        String recipeName = "Обед: курица + гречка";
+    private void createRecipeWithIngredients(User user, String recipeName,
+                                             MealType category,
+                                             Map<String, Double> ingredientSpecs) {
+        boolean[] created = {false};
 
-        boolean[] created = {false};   // хак для лямбды, или просто флаг
-
-        Recipe lunch = recipeRepository.findByNameAndUser(recipeName, user)
+        Recipe recipe = recipeRepository.findByNameAndUser(recipeName, user)
                 .orElseGet(() -> {
                     Recipe newRecipe = new Recipe();
                     newRecipe.setName(recipeName);
                     newRecipe.setUser(user);
+                    newRecipe.setCategory(category);
                     newRecipe.setVisibility(RecipeVisibility.PUBLIC);
                     newRecipe.setNameLower(recipeName.toLowerCase());
                     created[0] = true;
@@ -117,28 +137,29 @@ public class DataInitializer implements CommandLineRunner {
                     return recipeRepository.save(newRecipe);
                 });
 
-        Optional<Ingredient> chickenOpt = findIngredient("Куриная грудка (сырая)");
-        Optional<Ingredient> buckwheatOpt = findIngredient("Гречка варёная");
-        if (chickenOpt.isEmpty() || buckwheatOpt.isEmpty()) {
-            log.warn("Required ingredients not found, skipping recipe creation.");
-            return;
+        boolean ingredientsAdded = false;
+        for (Map.Entry<String, Double> spec : ingredientSpecs.entrySet()) {
+            Optional<Ingredient> ingOpt = findIngredient(spec.getKey());
+            if (ingOpt.isEmpty()) {
+                log.warn("Ingredient '{}' not found, skipping for recipe '{}'",
+                        spec.getKey(), recipeName);
+                continue;
+            }
+            if (ensureRecipeIngredient(recipe, ingOpt.get(), spec.getValue())) {
+                ingredientsAdded = true;
+            }
         }
 
-        boolean ingredientsAdded =
-                ensureRecipeIngredient(lunch, chickenOpt.get(), 200.0)
-                        | ensureRecipeIngredient(lunch, buckwheatOpt.get(), 150.0);
-
-// 🆕 Пересчёт КБЖУ после добавления ингредиентов
         if (created[0] || ingredientsAdded) {
-            lunch.setTotalCalories(lunch.calculateTotalCalories());
-            lunch.setTotalProteins(lunch.calculateTotalProteins());
-            lunch.setTotalFats(lunch.calculateTotalFats());
-            lunch.setTotalCarbs(lunch.calculateTotalCarbs());
-            recipeRepository.save(lunch);
+            recipe.setTotalCalories(recipe.calculateTotalCalories());
+            recipe.setTotalProteins(recipe.calculateTotalProteins());
+            recipe.setTotalFats(recipe.calculateTotalFats());
+            recipe.setTotalCarbs(recipe.calculateTotalCarbs());
+            recipeRepository.save(recipe);
         }
 
         log.info("Recipe '{}' has {} ingredients", recipeName,
-                recipeIngredientRepository.countByRecipe(lunch));
+                recipeIngredientRepository.countByRecipe(recipe));
     }
 
     private boolean ensureRecipeIngredient(Recipe recipe, Ingredient ingredient, double weightInGrams) {
@@ -152,18 +173,16 @@ public class DataInitializer implements CommandLineRunner {
             recipe.getIngredients().add(ri);
             log.debug("Added ingredient '{}' ({}g) to recipe '{}'",
                     ingredient.getName(), weightInGrams, recipe.getName());
-            return true;   // 🆕
+            return true;
         } else {
             log.debug("Ingredient '{}' already in recipe '{}'",
                     ingredient.getName(), recipe.getName());
-            return false;  // 🆕
+            return false;
         }
     }
+
     private Optional<Ingredient> findIngredient(String name) {
         return ingredientRepository.findByNameLowerAndUsername(
                 name.toLowerCase(), Ingredient.SYSTEM_USERNAME);
     }
-
 }
-
-

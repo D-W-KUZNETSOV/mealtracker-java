@@ -1,13 +1,11 @@
 package com.e.mealtracker.controller;
 
-import com.e.mealtracker.dto.CreateMealPlanItemRequest;
-import com.e.mealtracker.dto.CreateMealPlanRequest;
-import com.e.mealtracker.dto.MealPlanDto;
-import com.e.mealtracker.dto.MealPlanItemDto;
+import com.e.mealtracker.dto.*;
 import com.e.mealtracker.service.MealPlanService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -95,4 +93,36 @@ public class MealPlanController {
         mealPlanService.deleteItem(planId, itemId, userDetails.getUsername());
         return ResponseEntity.noContent().build();
     }
+    @GetMapping("/{id}/day-totals")
+    @Operation(summary = "КБЖУ за день")
+    public ResponseEntity<DayTotals> getDayTotals(
+            @PathVariable Long id,
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(
+                mealPlanService.calculateDayTotals(id, date, userDetails.getUsername()));
+    }
+
+    @PostMapping("/generate")
+    @Operation(summary = "Сгенерировать план на период")
+    public ResponseEntity<MealPlanDto> generate(
+            @RequestBody GeneratePlanRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        MealPlanDto dto = mealPlanService.generateDraft(
+                request.getName(), request.getStartDate(), request.getEndDate(),
+                userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+    }
+    @PatchMapping("/{planId}/items/{itemId}/replace")
+    @Operation(summary = "Заменить блюдо в плане")
+    public ResponseEntity<MealPlanItemDto> replaceItem(
+            @PathVariable Long planId,
+            @PathVariable Long itemId,
+            @RequestBody ReplaceItemRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        MealPlanItemDto dto = mealPlanService.replaceItem(
+                planId, itemId, request.getNewRecipeId(), userDetails.getUsername());
+        return ResponseEntity.ok(dto);
+    }
+
 }

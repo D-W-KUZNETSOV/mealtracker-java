@@ -138,6 +138,15 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, "USER_ALREADY_EXISTS", ex.getMessage(), request);
     }
 
+    // ================== 422 UNPROCESSABLE ENTITY ==================
+
+    @ExceptionHandler(NotEnoughRecipesException.class)
+    public ResponseEntity<ApiError> handleNotEnoughRecipes(NotEnoughRecipesException ex,
+                                                           HttpServletRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, "NOT_ENOUGH_RECIPES",
+                ex.getMessage(), request);
+    }
+
     // ================== 500 INTERNAL ==================
 
     @ExceptionHandler(Exception.class)
