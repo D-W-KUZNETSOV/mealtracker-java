@@ -10,12 +10,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.e.mealtracker.dto.FillerSuggestionDto;
+import com.e.mealtracker.dto.FillSuggestionsResponse;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
@@ -29,6 +30,7 @@ public class MealPlanService {
     private final RecipeRepository recipeRepository;
     private final IngredientRepository ingredientRepository;
     private final UserRepository userRepository;
+    private final NutritionCalculationService nutritionCalculationService;
 
     @Transactional(readOnly = true)
     public List<MealPlanDto> getAllPlans(String username) {
@@ -265,6 +267,98 @@ public class MealPlanService {
         item = mealPlanItemRepository.save(item);
 
         return MealPlanItemDto.fromEntity(item);
+    }
+    @Transactional(readOnly = true)
+    public FillSuggestionsResponse suggestFillers(Long planId, LocalDate date, String username) {
+        User user = getUser(username);
+        MealPlan plan = mealPlanRepository.findByIdAndUser(planId, user)
+                .orElseThrow(() -> new ResourceNotFoundException("План не найден: " + planId));
+
+        // 1. Текущее состояние дня
+        DayTotals current = calculateDayTotals(planId, date, username);
+
+        // 2. Цели
+        BigDecimal targetCalories = nutritionCalculationService.calculateDailyCaloriesForUser(user);
+        double targetProtein = nutritionCalculationService
+                .calculateTargetProteinFromGoals(user)
+                .targetProteinGramsPerDay();
+
+        // 3. Дельта
+        BigDecimal caloriesNeeded = targetCalories.subtract(current.calories())
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal proteinsNeeded = BigDecimal.valueOf(targetProtein)
+                .subtract(current.proteins())
+                .setScale(2, RoundingMode.HALF_UP);
+
+        if (caloriesNeeded.compareTo(BigDecimal.ZERO) <= 0) {
+            return new FillSuggestionsResponse(
+                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    List.of());
+        }
+
+        // 4. Кандидаты — только категории добора
+        List<String> fillerCategories = List.of("DAIRY", "FRUITS", "NUTS", "SWEETS", "EGGS");
+
+        List<Ingredient> candidates = ingredientRepository
+                .findAllByUsernameIn(List.of(Ingredient.SYSTEM_USERNAME, username))
+                .stream()
+                .filter(i -> i.getCategory() != null)
+                .filter(i -> fillerCategories.contains(i.getCategory()))
+                .toList();
+
+        // 5. Считаем score и порцию для каждого
+        List<FillerSuggestionDto> all = new ArrayList<>();
+        for (Ingredient ing : candidates) {
+            double calsPer100 = ing.calculateCaloriesPer100g();
+            if (calsPer100 <= 0) continue;
+
+            // Порция по плотности ккал
+            double portion;
+            if (calsPer100 > 300) portion = 30;
+            else if (calsPer100 > 100) portion = 100;
+            else portion = 200;
+
+            BigDecimal weight = BigDecimal.valueOf(portion);
+            BigDecimal cals = BigDecimal.valueOf(calsPer100)
+                    .multiply(weight)
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+            BigDecimal proteins = BigDecimal.ZERO;
+            if (ing.getProteinsPer100g() != null) {
+                proteins = BigDecimal.valueOf(ing.getProteinsPer100g())
+                        .multiply(weight)
+                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            }
+
+            all.add(new FillerSuggestionDto(
+                    ing.getId(),
+                    ing.getName(),
+                    ing.getCategory(),
+                    weight,
+                    cals,
+                    proteins));
+        }
+
+        // 6. Сортировка по score + макс 1 на категорию
+        List<FillerSuggestionDto> sorted = all.stream()
+                .sorted((a, b) -> {
+                    double scoreA = a.calories().doubleValue() / 200 + a.proteins().doubleValue() / 10;
+                    double scoreB = b.calories().doubleValue() / 200 + b.proteins().doubleValue() / 10;
+                    return Double.compare(scoreB, scoreA);
+                })
+                .toList();
+
+        List<FillerSuggestionDto> suggestions = new ArrayList<>();
+        Set<String> usedCategories = new HashSet<>();
+        for (FillerSuggestionDto s : sorted) {
+            if (usedCategories.contains(s.category())) continue;
+            usedCategories.add(s.category());
+            suggestions.add(s);
+            if (suggestions.size() >= 5) break;
+        }
+
+        return new FillSuggestionsResponse(caloriesNeeded, proteinsNeeded, suggestions);
     }
 
     private User getUser(String username) {
