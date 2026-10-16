@@ -1,15 +1,13 @@
 package com.e.mealtracker.controller;
 
-import com.e.mealtracker.dto.AddFromPlanRequest;
-import com.e.mealtracker.dto.CalendarResponse;
-import com.e.mealtracker.dto.DailyStatsDto;
-import com.e.mealtracker.dto.FoodPortionRequest;
+import com.e.mealtracker.dto.*;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.repository.UserRepository;
 import com.e.mealtracker.service.StatsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -70,6 +68,15 @@ public class StatsController {
         LocalDate parsedDate = LocalDate.parse(date);
         DailyStatsDto stats = statsService.getStatsByDate(parsedDate, user);
         return ResponseEntity.ok(stats);
+    }
+    @GetMapping("/suggest-fillers")
+    @Operation(summary = "Предложить добор до цели")
+    public ResponseEntity<FillSuggestionsResponse> suggestFillers(
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = getUser(userDetails);
+        FillSuggestionsResponse response = statsService.suggestFillers(date, user);
+        return ResponseEntity.ok(response);
     }
 
     /**

@@ -14,12 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import com.e.mealtracker.domain.Ingredient;
 import com.e.mealtracker.dto.FoodPortionRequest;
@@ -340,6 +338,89 @@ public class StatsService {
                 currentStreak,
                 bestStreak
         );
+    }
+    @Transactional(readOnly = true)
+    public FillSuggestionsResponse suggestFillers(LocalDate date, User user) {
+        DailyStatsDto stats = calculateStatsForDate(date, user);
+
+        Double targetCaloriesBox = stats.getTargetCalories();
+        Double targetProteinBox = stats.getTargetProtein();
+
+        if (targetCaloriesBox == null || targetProteinBox == null) {
+            throw new IllegalStateException(
+                    "Цели по калориям и белку не заданы. Установите их в разделе «Цели».");
+        }
+
+        BigDecimal caloriesNeeded = BigDecimal.valueOf(targetCaloriesBox - stats.getCalories())
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal proteinsNeeded = BigDecimal.valueOf(targetProteinBox - stats.getProteins())
+                .setScale(2, RoundingMode.HALF_UP);
+
+        if (caloriesNeeded.compareTo(BigDecimal.ZERO) <= 0) {
+            return new FillSuggestionsResponse(
+                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    List.of());
+        }
+
+        List<String> fillerCategories = List.of("DAIRY", "FRUITS", "NUTS", "SWEETS", "EGGS");
+
+        List<Ingredient> candidates = ingredientRepository
+                .findAllByUsernameIn(List.of(Ingredient.SYSTEM_USERNAME, user.getUsername()))
+                .stream()
+                .filter(i -> i.getCategory() != null)
+                .filter(i -> fillerCategories.contains(i.getCategory()))
+                .toList();
+
+        List<FillerSuggestionDto> all = new ArrayList<>();
+        for (Ingredient ing : candidates) {
+            double calsPer100 = ing.calculateCaloriesPer100g();
+            if (calsPer100 <= 0) continue;
+
+            double portion;
+            if (calsPer100 > 300) portion = 30;
+            else if (calsPer100 > 100) portion = 100;
+            else portion = 200;
+
+            BigDecimal weight = BigDecimal.valueOf(portion);
+            BigDecimal cals = BigDecimal.valueOf(calsPer100)
+                    .multiply(weight)
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+            BigDecimal proteins = BigDecimal.ZERO;
+            if (ing.getProteinsPer100g() != null) {
+                proteins = BigDecimal.valueOf(ing.getProteinsPer100g())
+                        .multiply(weight)
+                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            }
+
+            all.add(new FillerSuggestionDto(
+                    ing.getId(),
+                    ing.getName(),
+                    ing.getCategory(),
+                    weight,
+                    cals,
+                    proteins));
+        }
+
+        List<FillerSuggestionDto> sorted = all.stream()
+                .sorted((a, b) -> {
+                    double scoreA = a.calories().doubleValue() / 200 + a.proteins().doubleValue() / 10;
+                    double scoreB = b.calories().doubleValue() / 200 + b.proteins().doubleValue() / 10;
+                    return Double.compare(scoreB, scoreA);
+                })
+                .toList();
+
+        List<FillerSuggestionDto> suggestions = new ArrayList<>();
+        Set<String> usedCategories = new HashSet<>();
+        for (FillerSuggestionDto s : sorted) {
+            if (usedCategories.contains(s.category())) continue;
+            usedCategories.add(s.category());
+            suggestions.add(s);
+            if (suggestions.size() >= 5) break;
+        }
+
+        return new FillSuggestionsResponse(caloriesNeeded, proteinsNeeded, suggestions);
     }
 
     private int calculateCurrentStreak(List<LocalDate> dates) {

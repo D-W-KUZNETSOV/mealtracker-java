@@ -1,21 +1,15 @@
 package com.e.mealtracker.service;
 
-import com.e.mealtracker.domain.DailyLog;
-import com.e.mealtracker.domain.FoodEntry;
-import com.e.mealtracker.domain.Recipe;
-import com.e.mealtracker.domain.RecipeIngredient;
-import com.e.mealtracker.domain.UserGoals;
+import com.e.mealtracker.domain.*;
 import com.e.mealtracker.dto.DailyStatsDto;
+import com.e.mealtracker.dto.FillSuggestionsResponse;
 import com.e.mealtracker.dto.FoodPortionRequest;
 import com.e.mealtracker.dto.TargetProteinResponse;
 import com.e.mealtracker.entity.Role;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.exception.InvalidPortionWeightException;
 import com.e.mealtracker.exception.RecipeNotFoundException;
-import com.e.mealtracker.repository.DailyLogRepository;
-import com.e.mealtracker.repository.FoodEntryRepository;
-import com.e.mealtracker.repository.RecipeRepository;
-import com.e.mealtracker.repository.UserRepository;
+import com.e.mealtracker.repository.*;
 import com.e.mealtracker.util.GoalType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,12 +20,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+import com.e.mealtracker.dto.FillerSuggestionDto;
+
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -50,6 +50,9 @@ class StatsServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private NutritionCalculationService nutritionCalculationService;
     @Mock private RecipeNutritionService recipeNutritionService;   // 🆕
+    @Mock private MealPlanRepository mealPlanRepository;
+    @Mock private MealPlanItemRepository mealPlanItemRepository;
+    @Mock private IngredientRepository ingredientRepository;
 
     @InjectMocks
     private StatsService statsService;
@@ -421,5 +424,179 @@ class StatsServiceTest {
 
         assertThat(result.getContent()).isEmpty();
         verify(dailyLogRepository).findByUser(eq(user), any());
+    }
+    private Ingredient createIngredient(Long id, String name, String category,
+                                        double calsPer100, double proteinsPer100) {
+        Ingredient ing = new Ingredient();
+        ing.setId(id);
+        ing.setName(name);
+        ing.setCategory(category);
+        ing.setUsername(Ingredient.SYSTEM_USERNAME);
+        ing.setCaloriesPer100g(calsPer100);
+        ing.setProteinsPer100g(proteinsPer100);
+        ing.setFatsPer100g(0.0);
+        ing.setCarbsPer100g(0.0);
+        return ing;
+    }
+    private void mockStatsForDate(LocalDate date, double calories, double proteins,
+                                  Double targetCalories, Double targetProtein) {
+        DailyLog log = dailyLog(100L, user, date);
+        log.setCalories(BigDecimal.valueOf(calories));
+        log.setProtein(BigDecimal.valueOf(proteins));
+        log.setFat(BigDecimal.ZERO);
+        log.setCarbs(BigDecimal.ZERO);
+
+        when(dailyLogRepository.findByUserAndLogDate(user, date)).thenReturn(Optional.of(log));
+        when(foodEntryRepository.findByDailyLogId(100L)).thenReturn(List.of());
+
+        if (targetCalories != null) {
+            when(nutritionCalculationService.calculateDailyCaloriesForUser(user))
+                    .thenReturn(BigDecimal.valueOf(targetCalories));
+        } else {
+            when(nutritionCalculationService.calculateDailyCaloriesForUser(user))
+                    .thenReturn(BigDecimal.ZERO);
+        }
+
+        double tp = targetProtein != null ? targetProtein : 0.0;
+        when(nutritionCalculationService.calculateTargetProteinFromGoals(user))
+                .thenReturn(new TargetProteinResponse(0.0, tp));
+    }
+    @Test
+    @DisplayName("suggestFillers: дельта <= 0 → пустой список")
+    void shouldReturnEmptyWhenTargetReached() {
+        LocalDate date = LocalDate.of(2026, 10, 16);
+
+        // Съедено больше цели
+        mockStatsForDate(date, 3000.0, 150.0, 2747.0, 129.6);
+
+        FillSuggestionsResponse response = statsService.suggestFillers(date, user);
+
+        assertThat(response.caloriesNeeded()).isEqualByComparingTo("0");
+        assertThat(response.proteinsNeeded()).isEqualByComparingTo("0");
+        assertThat(response.suggestions()).isEmpty();
+
+        verify(ingredientRepository, never()).findAllByUsernameIn(any());
+    }
+    @Test
+    @DisplayName("suggestFillers: цели не заданы → IllegalStateException")
+    void shouldThrowWhenGoalsNotSet() {
+        LocalDate date = LocalDate.of(2026, 10, 16);
+
+        // Съедено 0, цель по ккал = 0 (значит targetCalories = null), белок = 0 → null
+        mockStatsForDate(date, 0.0, 0.0, null, null);
+
+        assertThatThrownBy(() -> statsService.suggestFillers(date, user))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Цели");
+
+        verify(ingredientRepository, never()).findAllByUsernameIn(any());
+    }
+    @Test
+    @DisplayName("suggestFillers: порция по плотности — 30/100/200г")
+    void shouldChoosePortionByDensity() {
+        LocalDate date = LocalDate.of(2026, 10, 16);
+
+        // Дельта: 1000 ккал, 50г белка
+        mockStatsForDate(date, 1747.0, 79.6, 2747.0, 129.6);
+
+        // Три кандидата — разная плотность и категории
+        Ingredient dense  = createIngredient(1L, "Пармезан", "DAIRY",  400.0, 30.0);
+        Ingredient medium = createIngredient(2L, "Творог",   "EGGS",   150.0, 20.0);
+        Ingredient light  = createIngredient(3L, "Йогурт",   "FRUITS",  60.0, 5.0);
+
+        when(ingredientRepository.findAllByUsernameIn(any()))
+                .thenReturn(List.of(dense, medium, light));
+
+        FillSuggestionsResponse response = statsService.suggestFillers(date, user);
+
+        assertThat(response.suggestions()).hasSize(3);
+
+        // Проверяем порции по категориям
+        Map<String, BigDecimal> portionByCategory = response.suggestions().stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        FillerSuggestionDto::category,
+                        FillerSuggestionDto::weightInGrams));
+
+        assertThat(portionByCategory.get("DAIRY")).isEqualByComparingTo("30");   // плотный
+        assertThat(portionByCategory.get("EGGS")).isEqualByComparingTo("100");   // средний
+        assertThat(portionByCategory.get("FRUITS")).isEqualByComparingTo("200"); // лёгкий
+    }
+    @Test
+    @DisplayName("suggestFillers: MEAT/FISH/GRAINS — исключены, добор только из DAIRY/FRUITS/NUTS/SWEETS/EGGS")
+    void shouldFilterByFillerCategories() {
+        LocalDate date = LocalDate.of(2026, 10, 16);
+
+        mockStatsForDate(date, 1747.0, 79.6, 2747.0, 129.6);
+
+        // Только "недоборные" категории — должны быть исключены
+        Ingredient meat = createIngredient(1L, "Куриная грудка", "MEAT", 113.0, 21.6);
+        Ingredient fish = createIngredient(2L, "Лосось", "FISH", 208.0, 20.0);
+        Ingredient grain = createIngredient(3L, "Гречка", "GRAINS", 132.0, 4.2);
+        Ingredient vegetable = createIngredient(4L, "Огурец", "VEGETABLES", 15.0, 0.8);
+
+        when(ingredientRepository.findAllByUsernameIn(any()))
+                .thenReturn(List.of(meat, fish, grain, vegetable));
+
+        FillSuggestionsResponse response = statsService.suggestFillers(date, user);
+
+        assertThat(response.suggestions()).isEmpty();
+    }
+    @Test
+    @DisplayName("suggestFillers: топ-5 + макс 1 на категорию")
+    void shouldReturnTop5WithOneCategoryEach() {
+        LocalDate date = LocalDate.of(2026, 10, 16);
+
+        mockStatsForDate(date, 1747.0, 79.6, 2747.0, 129.6);
+
+        // 2 кандидата в каждой из 5 категорий
+        Ingredient d1 = createIngredient(1L, "Творог", "DAIRY", 121.0, 17.0);
+        Ingredient d2 = createIngredient(2L, "Пармезан", "DAIRY", 392.0, 33.0);
+
+        Ingredient f1 = createIngredient(3L, "Банан", "FRUITS", 89.0, 1.1);
+        Ingredient f2 = createIngredient(4L, "Курага", "FRUITS", 215.0, 5.2);
+
+        Ingredient n1 = createIngredient(5L, "Арахис", "NUTS", 567.0, 25.8);
+        Ingredient n2 = createIngredient(6L, "Миндаль", "NUTS", 579.0, 21.2);
+
+        Ingredient s1 = createIngredient(7L, "Шоколад", "SWEETS", 546.0, 6.2);
+        Ingredient s2 = createIngredient(8L, "Мёд", "SWEETS", 304.0, 0.3);
+
+        Ingredient e1 = createIngredient(9L, "Яйцо", "EGGS", 157.0, 12.7);
+        Ingredient e2 = createIngredient(10L, "Яичный белок", "EGGS", 52.0, 11.0);
+
+        when(ingredientRepository.findAllByUsernameIn(any()))
+                .thenReturn(List.of(d1, d2, f1, f2, n1, n2, s1, s2, e1, e2));
+
+        FillSuggestionsResponse response = statsService.suggestFillers(date, user);
+
+        assertThat(response.suggestions()).hasSize(5);
+
+        // Все категории уникальны
+        Set<String> categories = response.suggestions().stream()
+                .map(FillerSuggestionDto::category)
+                .collect(java.util.stream.Collectors.toSet());
+        assertThat(categories).hasSize(5);
+        assertThat(categories).containsExactlyInAnyOrder(
+                "DAIRY", "FRUITS", "NUTS", "SWEETS", "EGGS");
+    }
+    @Test
+    @DisplayName("suggestFillers: из 2 кандидатов одной категории выбран лучший по score")
+    void shouldPickBestCandidatePerCategory() {
+        LocalDate date = LocalDate.of(2026, 10, 16);
+
+        mockStatsForDate(date, 1747.0, 79.6, 2747.0, 129.6);
+
+        // Два кандидата DAIRY
+        Ingredient cottage = createIngredient(1L, "Творог 5%", "DAIRY", 121.0, 17.0);
+        Ingredient parmesan = createIngredient(2L, "Пармезан", "DAIRY", 392.0, 33.0);
+
+        when(ingredientRepository.findAllByUsernameIn(any()))
+                .thenReturn(List.of(cottage, parmesan));
+
+        FillSuggestionsResponse response = statsService.suggestFillers(date, user);
+
+        assertThat(response.suggestions()).hasSize(1);
+        // Творог выигрывает (score выше)
+        assertThat(response.suggestions().get(0).ingredientName()).isEqualTo("Творог 5%");
     }
 }

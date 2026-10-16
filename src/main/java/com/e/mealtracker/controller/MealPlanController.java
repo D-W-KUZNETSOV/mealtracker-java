@@ -124,14 +124,6 @@ public class MealPlanController {
                 planId, itemId, request.getNewRecipeId(), userDetails.getUsername());
         return ResponseEntity.ok(dto);
     }
-    @GetMapping("/{id}/suggest-fillers")
-    @Operation(summary = "Предложить добор до цели")
-    public ResponseEntity<FillSuggestionsResponse> suggestFillers(
-            @PathVariable Long id,
-            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(
-                mealPlanService.suggestFillers(id, date, userDetails.getUsername()));
-    }
+
 
 }
