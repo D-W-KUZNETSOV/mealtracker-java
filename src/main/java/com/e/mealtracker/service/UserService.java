@@ -27,17 +27,15 @@ public class UserService {
 
     // ВАЖНО: здесь в скобках указан параметр RegisterRequest request
     @Transactional
-    public void registerUser(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new UserAlreadyExistsException("Пользователь с таким именем уже существует");
-        }
+    public User registerUser(RegisterRequest request) {
+        // зачем: username больше не приходит с фронта, проверять нечего
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new UserAlreadyExistsException("Пользователь с таким email уже зарегистрирован");
         }
 
-
         User user = new User();
-        user.setUsername(request.getUsername());
+        // зачем: генерируем технический логин, чтобы не ломать уникальность и NOT NULL
+        user.setUsername("user_" + UUID.randomUUID().toString().substring(0, 8));
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEmail(request.getEmail());
         user.setRole(Role.USER);
@@ -51,6 +49,7 @@ public class UserService {
         user.setProfile(profile);
 
         userRepository.save(user);
+        return user;
     }
 
 

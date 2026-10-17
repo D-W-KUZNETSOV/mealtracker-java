@@ -78,16 +78,22 @@ class AuthControllerTest {
     @Test
     @DisplayName("register: возвращает токен и 201 после успешной регистрации")
     void shouldReturnTokenAfterRegistration() {
+        // зачем: username больше не приходит с фронта, его генерирует сервис
         RegisterRequest request = new RegisterRequest();
-        request.setUsername("newuser");
         request.setPassword("pass1234");
         request.setEmail("new@example.com");
         request.setDateOfBirth(LocalDate.of(1995, 5, 20));
 
-        when(userDetailsService.loadUserByUsername("newuser")).thenReturn(userDetails);
-        when(userDetails.getUsername()).thenReturn("newuser");           // ← добавить
+        // зачем: мокаем сервис, чтобы он вернул юзера с готовым (сгенерированным) username
+        User mockUser = new User();
+        mockUser.setUsername("user_12345678");
+        when(userService.registerUser(request)).thenReturn(mockUser);
+
+        // зачем: контроллер берёт логин уже из созданного юзера
+        when(userDetailsService.loadUserByUsername("user_12345678")).thenReturn(userDetails);
+        when(userDetails.getUsername()).thenReturn("user_12345678");
         when(jwtService.generateToken(userDetails)).thenReturn("jwt-token-123");
-        when(jwtService.getExpirationSeconds()).thenReturn(86400L);      // ← если ты добавил expiresIn
+        when(jwtService.getExpirationSeconds()).thenReturn(86400L);
 
         ResponseEntity<AuthResponse> response = authController.register(request);
 
@@ -95,8 +101,8 @@ class AuthControllerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getToken()).isEqualTo("jwt-token-123");
         assertThat(response.getBody().getType()).isEqualTo("Bearer");
-        assertThat(response.getBody().getUsername()).isEqualTo("newuser");  // ← эта строка падала
-        assertThat(response.getBody().getExpiresIn()).isEqualTo(86400L);    // ← если добавил
+        assertThat(response.getBody().getUsername()).isEqualTo("user_12345678"); // проверяем сгенерированный
+        assertThat(response.getBody().getExpiresIn()).isEqualTo(86400L);
 
         verify(userService).registerUser(request);
     }

@@ -1,6 +1,7 @@
 package com.e.mealtracker.controller;
 
 import com.e.mealtracker.domain.UserGoals;
+import com.e.mealtracker.dto.DisplayNameRequest;
 import com.e.mealtracker.dto.UserProfileDto;
 import com.e.mealtracker.dto.UserProfileUpdateDto;
 import com.e.mealtracker.entity.User;
@@ -65,6 +66,18 @@ public class ProfileController {
     public ResponseEntity<UserProfileDto> getProfile(@AuthenticationPrincipal UserDetails userDetails) {
         UserProfileDto dto = profileService.getProfile(userDetails.getUsername());
         return ResponseEntity.ok(dto);
+    }
+    @PatchMapping("/display-name")
+    @Operation(summary = "Обновить отображаемое имя")
+    public ResponseEntity<Void> updateDisplayName(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody DisplayNameRequest request) {
+
+        User user = userService.findByUsername(userDetails.getUsername());
+        user.setDisplayName(request.getDisplayName().trim());
+        userService.save(user);
+
+        return ResponseEntity.ok().build();
     }
 }
 

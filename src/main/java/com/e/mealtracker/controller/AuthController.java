@@ -55,14 +55,17 @@ public class AuthController {
     @PostMapping("/register")
     @Operation(summary = "Регистрация нового пользователя")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        userService.registerUser(request);
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
+        // зачем: сервис создаёт юзера и возвращает его с уже сгенерированным username
+        User createdUser = userService.registerUser(request);
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(createdUser.getUsername());
         String token = jwtService.generateToken(userDetails);
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new AuthResponse(
                         token,
                         "Bearer",
-                        userDetails.getUsername(),
+                        userDetails.getUsername(), // здесь теперь технический логин (user_...)
                         jwtService.getExpirationSeconds()
                 ));
     }

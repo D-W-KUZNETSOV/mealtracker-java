@@ -11,7 +11,8 @@ public class UserResponse {
     private String username;
     private String email;
     private String role;
-    private String avatarUrl;   // ← новое
+    private String avatarUrl;
+    private String displayName; // 🆕 добавили сюда
 
     public static UserResponse fromEntity(User user) {
         String avatarUrl = null;
@@ -23,7 +24,8 @@ public class UserResponse {
                 user.getUsername(),
                 user.getEmail(),
                 user.getRole() != null ? user.getRole().name() : null,
-                avatarUrl
+                avatarUrl,
+                user.getDisplayName() // 🆕 прокинули значение
         );
     }
 }
