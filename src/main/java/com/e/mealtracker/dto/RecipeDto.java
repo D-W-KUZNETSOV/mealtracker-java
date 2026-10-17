@@ -35,7 +35,7 @@ public class RecipeDto {
         RecipeDto dto = new RecipeDto();
         dto.setId(r.getId());
         dto.setName(r.getName());
-        dto.setCategory(r.getCategory() != null ? r.getCategory().getDisplayName() : "Без категории");
+        dto.setCategory(r.getCategory() != null ? r.getCategory().name() : null);
         dto.setDescription(r.getDescription());
         dto.setImageUrl(r.getImageUrl());
         dto.setServings(r.getServings());

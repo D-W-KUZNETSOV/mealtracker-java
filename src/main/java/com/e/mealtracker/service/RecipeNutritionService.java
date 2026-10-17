@@ -95,7 +95,7 @@ public class RecipeNutritionService {
         dto.setId(recipe.getId());
         dto.setName(recipe.getName());
         dto.setCategory(recipe.getCategory() != null
-                ? recipe.getCategory().getDisplayName()
+                ? recipe.getCategory().name()
                 : null);
         dto.setDescription(recipe.getDescription());
         dto.setImageUrl(recipe.getImageUrl());

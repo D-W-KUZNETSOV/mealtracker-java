@@ -214,16 +214,7 @@ public class RecipeService {
 
         recipeRepository.save(recipe);
 
-        return new RecipeResponse(
-                recipe.getId(),
-                recipe.getName(),
-                recipe.getCategory() != null ? recipe.getCategory().getDisplayName() : null,
-                recipe.getTotalCalories(),
-                recipe.getTotalProteins(),
-                recipe.getTotalFats(),
-                recipe.getTotalCarbs(),
-                recipe.getVisibility()
-        );
+        return RecipeResponse.fromRecipe(recipe);
     }
 
     @Transactional
