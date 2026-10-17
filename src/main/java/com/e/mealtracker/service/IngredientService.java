@@ -36,6 +36,9 @@ public class IngredientService {
                     existing.setFatsPer100g(request.getFatsPer100g());
                     existing.setCarbsPer100g(request.getCarbsPer100g());
                     existing.setCaloriesPer100g(request.getCaloriesPer100g());   // для существующего
+                    if (request.getCategory() != null) {
+                        existing.setCategory(request.getCategory());
+                    }
 
                     // ============ Единицы измерения ============
                     if (request.getUnitType() != null) {
@@ -54,6 +57,9 @@ public class IngredientService {
                     newIngredient.setFatsPer100g(request.getFatsPer100g());
                     newIngredient.setCarbsPer100g(request.getCarbsPer100g());
                     newIngredient.setCaloriesPer100g(request.getCaloriesPer100g());  // для нового
+                    newIngredient.setCategory(
+                            request.getCategory() != null ? request.getCategory() : "OTHER"
+                    );
                     // ============ Единицы измерения ============
                     newIngredient.setUnitType(
                             request.getUnitType() != null ? request.getUnitType() : UnitType.GRAM
@@ -113,6 +119,7 @@ public class IngredientService {
                 .fatsPer100g(ingredient.getFatsPer100g())
                 .proteinsPer100g(ingredient.getProteinsPer100g())
                 .carbsPer100g(ingredient.getCarbsPer100g())
+                .category(ingredient.getCategory())
                 // ============ Единицы измерения ============
                 .unitType(ingredient.getUnitType())
                 .unitWeightGrams(ingredient.getUnitWeightGrams())
