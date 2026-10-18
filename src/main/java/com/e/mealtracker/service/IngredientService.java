@@ -65,6 +65,8 @@ public class IngredientService {
                             request.getUnitType() != null ? request.getUnitType() : UnitType.GRAM
                     );
                     newIngredient.setUnitWeightGrams(request.getUnitWeightGrams());
+                    newIngredient.setGramsPerTbsp(request.getGramsPerTbsp());
+                    newIngredient.setGramsPerTsp(request.getGramsPerTsp());
                     return ingredientRepository.save(newIngredient);
                 });
     }
@@ -94,6 +96,19 @@ public class IngredientService {
         }
         if (dto.getCaloriesPer100g() != null) {
             ingredient.setCaloriesPer100g(dto.getCaloriesPer100g());
+        }
+        // зачем: обновляем единицы измерения и коэффициенты, если они пришли
+        if (dto.getUnitType() != null) {
+            ingredient.setUnitType(dto.getUnitType());
+        }
+        if (dto.getUnitWeightGrams() != null) {
+            ingredient.setUnitWeightGrams(dto.getUnitWeightGrams());
+        }
+        if (dto.getGramsPerTbsp() != null) {
+            ingredient.setGramsPerTbsp(dto.getGramsPerTbsp());
+        }
+        if (dto.getGramsPerTsp() != null) {
+            ingredient.setGramsPerTsp(dto.getGramsPerTsp());
         }
 
 

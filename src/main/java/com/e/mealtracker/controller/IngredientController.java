@@ -142,6 +142,8 @@ public class IngredientController {
                 // ============ Единицы измерения ============
                 .unitType(ingredient.getUnitType())
                 .unitWeightGrams(ingredient.getUnitWeightGrams())
+                .gramsPerTbsp(ingredient.getGramsPerTbsp())
+                .gramsPerTsp(ingredient.getGramsPerTsp())
                 .build();
     }
 }

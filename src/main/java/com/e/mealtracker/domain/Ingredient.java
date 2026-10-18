@@ -6,6 +6,8 @@ import lombok.*;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "ingredients")
 @Getter
@@ -53,6 +55,16 @@ public class Ingredient {
 
     @Column(name = "name_lower", nullable = false)
     private String nameLower;
+
+    // зачем: единицы измерения для удобства юзера
+
+
+
+    @Column(name = "grams_per_tbsp", precision = 10, scale = 2)
+    private BigDecimal gramsPerTbsp;
+
+    @Column(name = "grams_per_tsp", precision = 10, scale = 2)
+    private BigDecimal gramsPerTsp;
 
     @PrePersist
     @PreUpdate

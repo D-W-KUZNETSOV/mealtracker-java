@@ -4,6 +4,8 @@ import com.e.mealtracker.domain.Ingredient;
 import com.e.mealtracker.util.UnitType;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 @Data
 public class IngredientResponseDto {
     private Long id;
@@ -17,21 +19,26 @@ public class IngredientResponseDto {
     private UnitType unitType;
     private Double unitWeightGrams;
 
+    // 🆕 Добавили ложки
+    private BigDecimal gramsPerTbsp;
+    private BigDecimal gramsPerTsp;
+
     public static IngredientResponseDto fromEntity(Ingredient ingredient) {
         IngredientResponseDto dto = new IngredientResponseDto();
         dto.setId(ingredient.getId());
         dto.setName(ingredient.getName());
-        // безопасно: если null, будет 0.0
         dto.setFatsPer100g(ingredient.getFatsPer100g() != null ? ingredient.getFatsPer100g() : 0.0);
         dto.setProteinsPer100g(ingredient.getProteinsPer100g() != null ? ingredient.getProteinsPer100g() : 0.0);
         dto.setCarbsPer100g(ingredient.getCarbsPer100g() != null ? ingredient.getCarbsPer100g() : 0.0);
-
-        // считаем калории прямо здесь
         dto.setCaloriesPer100g(ingredient.calculateCaloriesPer100g());
 
         // ============ Единицы измерения ============
         dto.setUnitType(ingredient.getUnitType());
         dto.setUnitWeightGrams(ingredient.getUnitWeightGrams());
+
+        // 🆕 Прокидываем ложки
+        dto.setGramsPerTbsp(ingredient.getGramsPerTbsp());
+        dto.setGramsPerTsp(ingredient.getGramsPerTsp());
 
         return dto;
     }

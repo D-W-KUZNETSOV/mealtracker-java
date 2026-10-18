@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal; // 🆕
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -29,4 +31,8 @@ public class CreateIngredientRequest {
     // ============ Единицы измерения ============
     private UnitType unitType;
     private Double unitWeightGrams;
+
+    // 🆕 Ложки (BigDecimal)
+    private BigDecimal gramsPerTbsp;
+    private BigDecimal gramsPerTsp;
 }
