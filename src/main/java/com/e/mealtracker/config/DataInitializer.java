@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
@@ -155,6 +156,27 @@ public class DataInitializer implements CommandLineRunner {
             recipe.setTotalProteins(recipe.calculateTotalProteins());
             recipe.setTotalFats(recipe.calculateTotalFats());
             recipe.setTotalCarbs(recipe.calculateTotalCarbs());
+
+            // 🆕 Считаем КБЖУ на 100 г
+            BigDecimal totalWeight = recipe.getIngredients().stream()
+                    .map(ri -> BigDecimal.valueOf(ri.getWeightInGrams()))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            if (totalWeight.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal factor = BigDecimal.valueOf(100)
+                        .divide(totalWeight, 10, RoundingMode.HALF_UP);
+
+                recipe.setCaloriesPer100g(recipe.getTotalCalories().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+                recipe.setProteinPer100g(recipe.getTotalProteins().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+                recipe.setFatPer100g(recipe.getTotalFats().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+                recipe.setCarbsPer100g(recipe.getTotalCarbs().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+            } else {
+                recipe.setCaloriesPer100g(BigDecimal.ZERO);
+                recipe.setProteinPer100g(BigDecimal.ZERO);
+                recipe.setFatPer100g(BigDecimal.ZERO);
+                recipe.setCarbsPer100g(BigDecimal.ZERO);
+            }
+
             recipeRepository.save(recipe);
         }
 
