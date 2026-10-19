@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.e.mealtracker.dto.TargetProteinResponse;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -197,12 +197,27 @@ public class MealPlanService {
             throw new IllegalArgumentException("startDate не может быть позже endDate");
         }
 
-        List<MealType> categories = List.of(MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER);
+        // 1. Норма калорий и белка
+        BigDecimal dailyCalories = nutritionCalculationService.calculateDailyCaloriesForUser(user);
+        if (dailyCalories == null || dailyCalories.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Не задана норма калорий. Заполните профиль и цель.");
+        }
+        double targetProtein = nutritionCalculationService.calculateTargetProteinFromGoals(user).targetProteinGramsPerDay();
 
-        // 1. Проверка рецептов
+        // 2. Распределение по приёмам
+        double targetBreakfastCal = dailyCalories.doubleValue() * 0.30;
+        double targetLunchCal = dailyCalories.doubleValue() * 0.40;
+        double targetDinnerCal = dailyCalories.doubleValue() * 0.30;
+
+        double targetBreakfastProt = targetProtein * 0.25;
+        double targetLunchProt = targetProtein * 0.40;
+        double targetDinnerProt = targetProtein * 0.35;
+
+        // 3. Проверка рецептов
+        List<MealType> categories = List.of(MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER);
         checkRecipesAvailability(user, categories);
 
-        // 2. Создание плана
+        // 4. Создание плана
         MealPlan plan = new MealPlan();
         plan.setUser(user);
         plan.setName(name);
@@ -212,19 +227,45 @@ public class MealPlanService {
 
         List<MealPlanItem> items = new ArrayList<>();
 
-        // 3. Проход по дням
+        // 5. Проход по дням
         LocalDate date = startDate;
         while (!date.isAfter(endDate)) {
             for (MealType category : categories) {
+                double targetCal = switch (category) {
+                    case BREAKFAST -> targetBreakfastCal;
+                    case LUNCH -> targetLunchCal;
+                    case DINNER -> targetDinnerCal;
+                    default -> 0;
+                };
+                double targetProt = switch (category) {
+                    case BREAKFAST -> targetBreakfastProt;
+                    case LUNCH -> targetLunchProt;
+                    case DINNER -> targetDinnerProt;
+                    default -> 0;
+                };
+
+                // Ищем рецепт, который ближе всего к цели по калориям И по белку
                 List<Recipe> recipes = recipeRepository.findAllByUserAndCategory(user, category);
-                Recipe randomRecipe = recipes.get(
-                        ThreadLocalRandom.current().nextInt(recipes.size()));
+                Recipe bestRecipe = recipes.stream()
+                        .min((r1, r2) -> {
+                            double c1 = r1.calculateTotalCalories().doubleValue();
+                            double p1 = r1.calculateTotalProteins().doubleValue();
+                            double c2 = r2.calculateTotalCalories().doubleValue();
+                            double p2 = r2.calculateTotalProteins().doubleValue();
+
+                            // Оценка: отклонение по калориям + отклонение по белку * 20 (вес белка)
+                            double score1 = Math.abs(c1 - targetCal) + Math.abs(p1 - targetProt) * 20;
+                            double score2 = Math.abs(c2 - targetCal) + Math.abs(p2 - targetProt) * 20;
+                            return Double.compare(score1, score2);
+                        })
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Нет рецептов для категории " + category));
 
                 MealPlanItem item = new MealPlanItem();
                 item.setPlan(plan);
                 item.setPlanDate(date);
                 item.setMealType(category);
-                item.setRecipe(randomRecipe);
+                item.setRecipe(bestRecipe);
                 item.setServings(1.0);
 
                 items.add(mealPlanItemRepository.save(item));
@@ -232,7 +273,7 @@ public class MealPlanService {
             date = date.plusDays(1);
         }
 
-        // 4. Возврат DTO
+        // 6. Возврат DTO
         List<MealPlanItemDto> itemDtos = items.stream()
                 .map(MealPlanItemDto::fromEntity)
                 .toList();
