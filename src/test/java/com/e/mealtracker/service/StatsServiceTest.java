@@ -447,7 +447,7 @@ class StatsServiceTest {
         log.setCarbs(BigDecimal.ZERO);
 
         when(dailyLogRepository.findByUserAndLogDate(user, date)).thenReturn(Optional.of(log));
-        when(foodEntryRepository.findByDailyLogId(100L)).thenReturn(List.of());
+        lenient().when(foodEntryRepository.findByDailyLogId(100L)).thenReturn(List.of());
 
         if (targetCalories != null) {
             when(nutritionCalculationService.calculateDailyCaloriesForUser(user))

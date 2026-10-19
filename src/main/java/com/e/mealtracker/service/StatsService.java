@@ -194,7 +194,7 @@ public class StatsService {
 
         List<FoodEntryDto> entries = Collections.emptyList();
         if (dailyLog.getId() != null) {
-            entries = foodEntryRepository.findByDailyLogId(dailyLog.getId()).stream()
+            entries = foodEntryRepository.findByDailyLog(dailyLog).stream()
                     .map(FoodEntryDto::fromEntity)
                     .toList();
         }
@@ -213,17 +213,16 @@ public class StatsService {
     }
     @Transactional
     public void deleteEntry(Long entryId, User user) {
-        FoodEntry entry = foodEntryRepository.findById(entryId)
-                .orElseThrow(() -> new IllegalArgumentException("Запись не найдена: " + entryId));
+        // зачем: ищем запись, но если её нет — просто выходим (не кидаем ошибку)
+        Optional<FoodEntry> entry = foodEntryRepository.findByIdAndUser(entryId, user);
 
-        // Проверка: запись принадлежит текущему пользователю
-        if (!entry.getDailyLog().getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("Нет доступа к записи");
+        if (entry.isEmpty()) {
+            log.warn("Попытка удалить несуществующую запись: {} (юзер: {})", entryId, user.getUsername());
+            return; // зачем: идемпотентность — удаление уже удалённого не ошибка
         }
 
-        DailyLog log = entry.getDailyLog();
-        foodEntryRepository.delete(entry);
-        recalculateDailyTotals(log);
+        foodEntryRepository.delete(entry.get());
+        log.info("Запись {} удалена", entryId);
     }
 
 
