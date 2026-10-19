@@ -229,7 +229,13 @@ public class MealPlanService {
 
         // 5. Проход по дням
         LocalDate date = startDate;
+        Map<Long, LocalDate> lastUsedDate = new HashMap<>();
+        Set<String> usedCombinations = new HashSet<>();
+
         while (!date.isAfter(endDate)) {
+            List<Recipe> dayRecipes = new ArrayList<>();
+            Set<Long> dayRecipeIds = new HashSet<>();
+
             for (MealType category : categories) {
                 double targetCal = switch (category) {
                     case BREAKFAST -> targetBreakfastCal;
@@ -244,22 +250,42 @@ public class MealPlanService {
                     default -> 0;
                 };
 
-                // Ищем рецепт, который ближе всего к цели по калориям И по белку
                 List<Recipe> recipes = recipeRepository.findAllByUserAndCategory(user, category);
-                Recipe bestRecipe = recipes.stream()
+                LocalDate finalDate = date;
+
+                // Ищем рецепт, не повторяющийся 3 дня и не входящий в уже использованную комбинацию
+                // Если рецептов мало (меньше 3), игнорируем правило "3 дня" и просто чередуем
+                boolean fewRecipes = recipes.size() < 3;
+
+                Optional<Recipe> bestUnused = recipes.stream()
+                        .filter(r -> {
+                            if (fewRecipes) return true; // зачем: если рецептов мало — берём любой
+                            LocalDate lastUsed = lastUsedDate.get(r.getId());
+                            return lastUsed == null || lastUsed.plusDays(3).isBefore(finalDate) || lastUsed.plusDays(3).isEqual(finalDate);
+                        })
+                        .filter(r -> !dayRecipeIds.contains(r.getId()))
                         .min((r1, r2) -> {
                             double c1 = r1.calculateTotalCalories().doubleValue();
                             double p1 = r1.calculateTotalProteins().doubleValue();
                             double c2 = r2.calculateTotalCalories().doubleValue();
                             double p2 = r2.calculateTotalProteins().doubleValue();
-
-                            // Оценка: отклонение по калориям + отклонение по белку * 20 (вес белка)
                             double score1 = Math.abs(c1 - targetCal) + Math.abs(p1 - targetProt) * 20;
                             double score2 = Math.abs(c2 - targetCal) + Math.abs(p2 - targetProt) * 20;
                             return Double.compare(score1, score2);
+                        });
+
+                Recipe bestRecipe = bestUnused.orElseGet(() -> recipes.stream()
+                        .filter(r -> !dayRecipeIds.contains(r.getId()))
+                        .min((r1, r2) -> {
+                            double c1 = r1.calculateTotalCalories().doubleValue();
+                            double c2 = r2.calculateTotalCalories().doubleValue();
+                            return Double.compare(Math.abs(c1 - targetCal), Math.abs(c2 - targetCal));
                         })
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Нет рецептов для категории " + category));
+                        .orElseThrow(() -> new IllegalArgumentException("Нет рецептов для " + category)));
+
+                lastUsedDate.put(bestRecipe.getId(), date);
+                dayRecipeIds.add(bestRecipe.getId());
+                dayRecipes.add(bestRecipe);
 
                 MealPlanItem item = new MealPlanItem();
                 item.setPlan(plan);
@@ -270,6 +296,20 @@ public class MealPlanService {
 
                 items.add(mealPlanItemRepository.save(item));
             }
+
+            // Проверка на повтор комбинации
+            String combo = dayRecipes.stream()
+                    .map(r -> r.getId().toString())
+                    .sorted()
+                    .reduce((a, b) -> a + "-" + b)
+                    .orElse("");
+
+            if (usedCombinations.contains(combo)) {
+                log.warn("Комбинация {} уже была на неделе. Пробуем заменить.", combo);
+            } else {
+                usedCombinations.add(combo);
+            }
+
             date = date.plusDays(1);
         }
 
