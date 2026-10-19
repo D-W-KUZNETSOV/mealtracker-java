@@ -1,5 +1,6 @@
 package com.e.mealtracker.dto;
 
+import com.e.mealtracker.domain.RecipeVisibility;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
@@ -26,6 +27,8 @@ public class CreateRecipeRequest {
     @NotEmpty(message = "В рецепте должен быть хотя бы один ингредиент")
     @Valid
     private List<IngredientWeightDto> ingredients;
+
+    private RecipeVisibility visibility = RecipeVisibility.PRIVATE;
 
 
 

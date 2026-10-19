@@ -2,6 +2,7 @@ package com.e.mealtracker.service;
 
 import com.e.mealtracker.domain.*;
 import com.e.mealtracker.dto.RecipeResponse;
+import com.e.mealtracker.entity.Role;
 import com.e.mealtracker.entity.User;
 import com.e.mealtracker.exception.RecipeNotFoundException;
 import com.e.mealtracker.repository.*;
@@ -37,8 +38,15 @@ public class RecipeService {
 
     @Transactional
     public RecipeDto saveRecipe(CreateRecipeRequest request, String username) {
+
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+
+        boolean isAdmin = user.getRole() == Role.ADMIN;
+        if (!isAdmin && request.getVisibility() == RecipeVisibility.PUBLIC) {
+            throw new IllegalArgumentException("Только администратор может делать рецепты публичными");
+        }
+
 
         // 1. Создаём рецепт без КБЖУ
         Recipe recipe = new Recipe();
