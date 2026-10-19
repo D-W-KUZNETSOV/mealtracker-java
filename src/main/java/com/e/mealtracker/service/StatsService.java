@@ -192,12 +192,11 @@ public class StatsService {
             proteinProgressPercent = (dailyLog.getProtein().doubleValue() / targetProtein) * 100.0;
         }
 
-        List<FoodEntryDto> entries = Collections.emptyList();
-        if (dailyLog.getId() != null) {
-            entries = foodEntryRepository.findByDailyLog(dailyLog).stream()
-                    .map(FoodEntryDto::fromEntity)
-                    .toList();
-        }
+        List<FoodEntryDto> entries = foodEntryRepository
+                .findByDailyLog_UserAndDailyLog_LogDate(user, date)
+                .stream()
+                .map(FoodEntryDto::fromEntity)
+                .toList();
 
         return new DailyStatsDto(
                 dailyLog.getCalories().doubleValue(),
@@ -221,7 +220,14 @@ public class StatsService {
             return; // зачем: идемпотентность — удаление уже удалённого не ошибка
         }
 
+        // зачем: запоминаем dailyLog перед удалением (чтобы пересчитать итоги)
+        DailyLog dailyLog = entry.get().getDailyLog();
+
         foodEntryRepository.delete(entry.get());
+
+        // зачем: пересчитываем итоги после удаления (чтобы цифры в дневнике обновились)
+        recalculateDailyTotals(dailyLog);
+
         log.info("Запись {} удалена", entryId);
     }
 

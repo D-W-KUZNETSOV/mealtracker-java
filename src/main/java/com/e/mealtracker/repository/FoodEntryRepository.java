@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,4 +18,6 @@ public interface FoodEntryRepository extends JpaRepository<FoodEntry, Long> {
     List<FoodEntry> findByDailyLog(DailyLog dailyLog);
 
     List<FoodEntry> findByDailyLogId(Long dailyLogId);
+
+    List<FoodEntry> findByDailyLog_UserAndDailyLog_LogDate(User user, LocalDate logDate);
 }
