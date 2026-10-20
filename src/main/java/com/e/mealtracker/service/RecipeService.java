@@ -239,12 +239,20 @@ public class RecipeService {
             throw new IllegalArgumentException("Нет доступа к рецепту");
         }
 
+        // 3. проверяем права на PUBLIC
+        boolean isAdmin = user.getRole() == Role.ADMIN;
+        if (!isAdmin && request.getVisibility() == RecipeVisibility.PUBLIC) {
+            throw new IllegalArgumentException("Только администратор может делать рецепты публичными");
+        }
+
         // 2. Обновляем простые поля
         recipe.setName(request.getName());
         recipe.setNameLower(request.getName().toLowerCase());   // 🆕
         recipe.setDescription(request.getDescription());
         recipe.setImageUrl(request.getImageUrl());
         recipe.setSteps(RecipeDto.serializeSteps(request.getSteps()));
+        // зачем: обновляем видимость (если админ меняет)
+        recipe.setVisibility(request.getVisibility() != null ? request.getVisibility() : RecipeVisibility.PRIVATE);
 
         if (request.getCategory() != null && !request.getCategory().isBlank()) {
             try {
