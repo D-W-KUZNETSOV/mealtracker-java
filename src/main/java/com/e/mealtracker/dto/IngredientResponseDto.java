@@ -14,6 +14,8 @@ public class IngredientResponseDto {
     private double proteinsPer100g;
     private double carbsPer100g;
     private double caloriesPer100g;
+    private String category;   // 🆕
+    private String barcode;    // 🆕
 
     // ============ Единицы измерения ============
     private UnitType unitType;
@@ -39,6 +41,8 @@ public class IngredientResponseDto {
         // 🆕 Прокидываем ложки
         dto.setGramsPerTbsp(ingredient.getGramsPerTbsp());
         dto.setGramsPerTsp(ingredient.getGramsPerTsp());
+        dto.setCategory(ingredient.getCategory());
+        dto.setBarcode(ingredient.getBarcode());
 
         return dto;
     }

@@ -1,10 +1,7 @@
 package com.e.mealtracker.controller;
 
 import com.e.mealtracker.domain.Ingredient;
-import com.e.mealtracker.dto.CreateIngredientRequest;
-import com.e.mealtracker.dto.IngredientDto;
-import com.e.mealtracker.dto.IngredientResponseDto;
-import com.e.mealtracker.dto.IngredientUpdateDTO;
+import com.e.mealtracker.dto.*;
 import com.e.mealtracker.repository.IngredientRepository;
 import com.e.mealtracker.service.IngredientService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -40,7 +38,7 @@ public class IngredientController {
             @Valid @RequestBody CreateIngredientRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         Ingredient ingredient = ingredientService.saveIngredient(request, userDetails.getUsername());
-        return toDto(ingredient);
+        return IngredientDto.fromEntity(ingredient);
     }
 
     /**
@@ -54,7 +52,7 @@ public class IngredientController {
             @AuthenticationPrincipal UserDetails userDetails) {
         return ingredientService.findAllByUsername(userDetails.getUsername())
                 .stream()
-                .map(this::toDto)
+                .map(IngredientDto::fromEntity)
                 .toList();
     }
 
@@ -69,7 +67,7 @@ public class IngredientController {
         return ingredientRepository
                 .findAllByUsername(Ingredient.SYSTEM_USERNAME)
                 .stream()
-                .map(this::toDto)
+                .map(IngredientDto::fromEntity)
                 .toList();
     }
 
@@ -89,7 +87,7 @@ public class IngredientController {
             list = ingredientRepository.findByNameLowerContainingAndUsername(
                     query.toLowerCase(), Ingredient.SYSTEM_USERNAME);
         }
-        return list.stream().map(this::toDto).toList();
+        return list.stream().map(IngredientDto::fromEntity).toList();
     }
 
     /**
@@ -125,27 +123,46 @@ public class IngredientController {
     }
 
     /**
-     * Преобразует сущность Ingredient в DTO.
-     * Вызывает расчёт калорийности на 100 г прямо в маппинге.
-     * Внимание: если calculateCaloriesPer100g() может выбросить исключение —
-     * здесь нужна дополнительная обработка ошибок.
+     * Ищет ингредиент по штрихкоду в своей базе (сначала личные, потом базовые SYSTEM).
+     * Если не найден — возвращает found = false, а фронт откроет форму для ручного ввода.
      */
-    private IngredientDto toDto(Ingredient ingredient) {
-        return IngredientDto.builder()
-                .id(ingredient.getId())
-                .name(ingredient.getName())
-                .caloriesPer100g(ingredient.calculateCaloriesPer100g())
-                .fatsPer100g(ingredient.getFatsPer100g())
-                .proteinsPer100g(ingredient.getProteinsPer100g())
-                .carbsPer100g(ingredient.getCarbsPer100g())
-                .category(ingredient.getCategory())
-                // ============ Единицы измерения ============
-                .unitType(ingredient.getUnitType())
-                .unitWeightGrams(ingredient.getUnitWeightGrams())
-                .gramsPerTbsp(ingredient.getGramsPerTbsp())
-                .gramsPerTsp(ingredient.getGramsPerTsp())
+    @GetMapping("/barcode/{code}")
+    @Operation(summary = "Найти ингредиент по штрихкоду в своей базе")
+    public ProductLookupResponse lookupByBarcode(@PathVariable String code,
+                                                 @AuthenticationPrincipal UserDetails userDetails) {
+        // 1. Ищем у текущего юзера
+        Optional<Ingredient> own = ingredientRepository.findByBarcodeAndUsername(code, userDetails.getUsername());
+        if (own.isPresent()) {
+            return toProductLookup(own.get());
+        }
+
+        // 2. Ищем в базовых (SYSTEM) — вдруг кто-то уже добавил
+        Optional<Ingredient> base = ingredientRepository.findByBarcodeAndUsername(code, Ingredient.SYSTEM_USERNAME);
+        if (base.isPresent()) {
+            return toProductLookup(base.get());
+        }
+
+        // 3. Не нашли
+        return ProductLookupResponse.builder()
+                .barcode(code)
+                .found(false)
                 .build();
     }
+
+    private ProductLookupResponse toProductLookup(Ingredient ingredient) {
+        return ProductLookupResponse.builder()
+                .barcode(ingredient.getBarcode())
+                .name(ingredient.getName())
+                .caloriesPer100g(ingredient.calculateCaloriesPer100g())
+                .proteinsPer100g(ingredient.getProteinsPer100g())
+                .fatsPer100g(ingredient.getFatsPer100g())
+                .carbsPer100g(ingredient.getCarbsPer100g())
+                .id(ingredient.getId()) // 🆕
+                .found(true)
+                .build();
+    }
+
+
 }
 
 

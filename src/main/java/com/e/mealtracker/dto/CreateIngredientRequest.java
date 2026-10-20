@@ -35,4 +35,6 @@ public class CreateIngredientRequest {
     // 🆕 Ложки (BigDecimal)
     private BigDecimal gramsPerTbsp;
     private BigDecimal gramsPerTsp;
+    // 🆕 Штрихкод (EAN-13)
+    private String barcode;
 }

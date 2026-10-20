@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import com.e.mealtracker.exception.UserAlreadyExistsException;
+import com.e.mealtracker.exception.OffUnavailableException;
 
 import java.sql.SQLTransientConnectionException;
 import java.time.Instant;
@@ -159,6 +160,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleDisabled(DisabledException ex, HttpServletRequest request) {
         return build(HttpStatus.FORBIDDEN, "ACCOUNT_DELETED",
                 "Аккаунт удалён. Обратитесь в поддержку для восстановления.", request);
+    }
+    // ================== 502 BAD GATEWAY (OFF недоступен) ==================
+
+    @ExceptionHandler(OffUnavailableException.class)
+    public ResponseEntity<ApiError> handleOffUnavailable(OffUnavailableException ex,
+                                                         HttpServletRequest request) {
+        log.error("Open Food Facts unavailable at {}: {}", request.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.BAD_GATEWAY, "OFF_UNAVAILABLE",
+                "Сервис поиска продуктов временно недоступен. Попробуйте позже.", request);
     }
     // ================== 503 SERVICE UNAVAILABLE (БД недоступна) ==================
 

@@ -60,6 +60,7 @@ public class IngredientService {
                     newIngredient.setCategory(
                             request.getCategory() != null ? request.getCategory() : "OTHER"
                     );
+                    newIngredient.setBarcode(request.getBarcode());
                     // ============ Единицы измерения ============
                     newIngredient.setUnitType(
                             request.getUnitType() != null ? request.getUnitType() : UnitType.GRAM

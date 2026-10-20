@@ -32,4 +32,6 @@ public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
     void delete(Ingredient ingredient);
 
     Optional<Ingredient> findFirstByUsernameAndNameLower(String username, String nameLower);
+
+    Optional<Ingredient> findByBarcodeAndUsername(String barcode, String username);
 }

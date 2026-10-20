@@ -56,6 +56,9 @@ public class Ingredient {
     @Column(name = "name_lower", nullable = false)
     private String nameLower;
 
+    @Column(name = "barcode", length = 20)
+    private String barcode;
+
     // зачем: единицы измерения для удобства юзера
 
 
