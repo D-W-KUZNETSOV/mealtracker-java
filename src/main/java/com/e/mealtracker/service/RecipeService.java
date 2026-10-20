@@ -57,6 +57,7 @@ public class RecipeService {
         recipe.setImageUrl(request.getImageUrl());
         recipe.setSteps(RecipeDto.serializeSteps(request.getSteps()));
         if (request.getServings() != null && request.getServings() > 0) {
+            log.info("Request servings: {}", request.getServings());
             recipe.setServings(request.getServings());
         } else {
             recipe.setServings(1);
