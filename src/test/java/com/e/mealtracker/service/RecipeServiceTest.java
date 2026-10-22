@@ -6,6 +6,7 @@ import com.e.mealtracker.dto.IngredientWeightDto;
 import com.e.mealtracker.dto.RecipeDto;
 import com.e.mealtracker.entity.Role;
 import com.e.mealtracker.entity.User;
+import com.e.mealtracker.exception.RecipeNotFoundException;
 import com.e.mealtracker.repository.IngredientRepository;
 import com.e.mealtracker.repository.RecipeIngredientRepository;
 import com.e.mealtracker.repository.RecipeRepository;
@@ -17,6 +18,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -283,15 +285,34 @@ class RecipeServiceTest {
 
     @Test
     @DisplayName("deleteRecipeByUser: рецепт не найден → RecipeNotFoundException")
-    void shouldThrowWhenDeletingForeignRecipe() {
+    void shouldThrowWhenDeletingNotFoundRecipe() {
         User user = createUser(1L, "dmitriy");
+        user.setRole(Role.USER); // обычный юзер
+
         when(userRepository.findByUsername("dmitriy")).thenReturn(Optional.of(user));
-        when(recipeRepository.findByIdAndUser(99L, user)).thenReturn(Optional.empty());
+        when(recipeRepository.findById(99L)).thenReturn(Optional.empty()); // 🆕 findById
 
         assertThatThrownBy(() -> recipeService.deleteRecipeByUser(99L, "dmitriy"))
-                .isInstanceOf(com.e.mealtracker.exception.RecipeNotFoundException.class);
+                .isInstanceOf(RecipeNotFoundException.class);
+    }
 
+    @Test
+    @DisplayName("deleteRecipeByUser: чужой рецепт (не админ) → AccessDeniedException")
+    void shouldThrowWhenDeletingForeignRecipe() {
+        User currentUser = createUser(1L, "dmitriy");
+        currentUser.setRole(Role.USER); // обычный юзер
 
+        User otherUser = createUser(2L, "other");
+
+        Recipe foreignRecipe = new Recipe();
+        foreignRecipe.setId(99L);
+        foreignRecipe.setUser(otherUser);
+
+        when(userRepository.findByUsername("dmitriy")).thenReturn(Optional.of(currentUser));
+        when(recipeRepository.findById(99L)).thenReturn(Optional.of(foreignRecipe)); // 🆕 findById
+
+        assertThatThrownBy(() -> recipeService.deleteRecipeByUser(99L, "dmitriy"))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test

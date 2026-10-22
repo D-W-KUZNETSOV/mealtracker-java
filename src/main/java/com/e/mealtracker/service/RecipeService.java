@@ -192,10 +192,20 @@ public class RecipeService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
 
-        Recipe recipe = recipeRepository.findByIdAndUser(id, user)
+        // 🆕 Ищем рецепт просто по ID (чтобы админ мог найти любой)
+        Recipe recipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(
-                        "Рецепт с ID " + id + " не найден или не принадлежит пользователю " + username
+                        "Рецепт с ID " + id + " не найден"
                 ));
+
+        // 🆕 Проверяем права: либо это твой рецепт, либо ты админ
+        boolean isOwner = recipe.getUser().getId().equals(user.getId());
+        boolean isAdmin = user.getRole() == Role.ADMIN;
+
+        if (!isOwner && !isAdmin) {
+            throw new AccessDeniedException("Нет доступа к рецепту");
+        }
+
         recipeRepository.delete(recipe);
     }
 
@@ -235,12 +245,16 @@ public class RecipeService {
         Recipe recipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Рецепт с ID " + id + " не найден"));
 
-        if (!recipe.getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("Нет доступа к рецепту");
+        // 🆕 Проверяем права: либо это твой рецепт, либо ты админ
+        boolean isOwner = recipe.getUser().getId().equals(user.getId());
+        boolean isAdmin = user.getRole() == Role.ADMIN;
+
+        if (!isOwner && !isAdmin) {
+            throw new AccessDeniedException("Нет доступа к рецепту");
         }
 
         // 3. проверяем права на PUBLIC
-        boolean isAdmin = user.getRole() == Role.ADMIN;
+
         if (!isAdmin && request.getVisibility() == RecipeVisibility.PUBLIC) {
             throw new IllegalArgumentException("Только администратор может делать рецепты публичными");
         }
